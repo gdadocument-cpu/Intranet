@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>GDA</title>
+
+  <link rel="preconnect" href="https://script.google.com">
+  <link rel="preconnect" href="https://script.googleusercontent.com">
+
+  <!-- STYLE PRINCIPAL -->
+<link rel="stylesheet" href="style.css?v=20260717-5">
+
+  <!-- STYLE DE L'EFFECTIF -->
+<link rel="stylesheet" href="effectif.css?v=20260717-5">
+<link rel="stylesheet" href="effectif-public.css?v=20260717-5">
+<link rel="stylesheet" href="disponibilites.css?v=20260717-5">
+<link rel="stylesheet" href="depart.css?v=20260717-5">
+<link rel="stylesheet" href="rapports.css?v=20260717-5">
+<link rel="stylesheet" href="rapport-membre.css?v=20260717-5">
+<link rel="stylesheet" href="gestion-personnel.css?v=20260717-5">
+<link rel="stylesheet" href="administration.css?v=20260717-5">
+<link rel="stylesheet" href="logs.css?v=20260717-5">
+<link rel="stylesheet" href="demande-absence.css?v=20260717-5">
+<link rel="stylesheet" href="instructeur-archives.css?v=20260717-5">
+<link rel="stylesheet" href="instructeur-rapports.css?v=20260717-5">
+<link rel="stylesheet" href="instructeur-suivis.css?v=20260717-5">
+<link rel="stylesheet" href="extensions.css?v=20260717-5">
+<link rel="stylesheet" href="instructeur-suivis-compact.css?v=20260717-5">
+</head>
+
+<body>
+
+  <!-- =========================
+       ÉCRAN DE CONNEXION
+  ========================== -->
+  <div id="boot">
+
+    <div class="logo-piece">
+      <span
+        class="logo-tranche"
+        aria-hidden="true"
+      >
+        <i class="logo-facette" style="--angle:0deg"></i>
+        <i class="logo-facette" style="--angle:15deg"></i>
+        <i class="logo-facette" style="--angle:30deg"></i>
+        <i class="logo-facette" style="--angle:45deg"></i>
+        <i class="logo-facette" style="--angle:60deg"></i>
+        <i class="logo-facette" style="--angle:75deg"></i>
+        <i class="logo-facette" style="--angle:90deg"></i>
+        <i class="logo-facette" style="--angle:105deg"></i>
+        <i class="logo-facette" style="--angle:120deg"></i>
+        <i class="logo-facette" style="--angle:135deg"></i>
+        <i class="logo-facette" style="--angle:150deg"></i>
+        <i class="logo-facette" style="--angle:165deg"></i>
+        <i class="logo-facette" style="--angle:180deg"></i>
+        <i class="logo-facette" style="--angle:195deg"></i>
+        <i class="logo-facette" style="--angle:210deg"></i>
+        <i class="logo-facette" style="--angle:225deg"></i>
+        <i class="logo-facette" style="--angle:240deg"></i>
+        <i class="logo-facette" style="--angle:255deg"></i>
+        <i class="logo-facette" style="--angle:270deg"></i>
+        <i class="logo-facette" style="--angle:285deg"></i>
+        <i class="logo-facette" style="--angle:300deg"></i>
+        <i class="logo-facette" style="--angle:315deg"></i>
+        <i class="logo-facette" style="--angle:330deg"></i>
+        <i class="logo-facette" style="--angle:345deg"></i>
+      </span>
+
+      <img
+        src="images/logo.png"
+        id="logo"
+        class="logo-face logo-face-avant"
+        alt="Logo GDA"
+      >
+
+      <img
+        src="images/logo.png"
+        class="logo-face logo-face-arriere"
+        alt=""
+        aria-hidden="true"
+      >
+    </div>
+
+    <h1>GARDE DE L'ADMINISTRATION</h1>
+
+    <form id="login">
+
+      <div class="login-ligne">
+        <input
+          id="username"
+          type="text"
+          placeholder="Nom ou matricule"
+          autocomplete="username"
+        >
+
+        <button
+          type="submit"
+          id="loginButton"
+          aria-label="Continuer avec Discord"
+          title="Continuer avec Discord"
+        >
+          <span aria-hidden="true">→</span>
+        </button>
+      </div>
+
+      <label class="login-memoriser" for="rememberDiscord">
+        <input id="rememberDiscord" type="checkbox">
+        <span>Rester connecté pendant 7 jours sur ce PC</span>
+      </label>
+
+    </form>
+
+    <!-- Caché tant que la connexion n'est pas validée -->
+    <div id="loading">
+
+      <p id="bootText">
+        Connexion au serveur sécurisé...
+      </p>
+
+      <div id="bar">
+        <div id="progress"></div>
+      </div>
+
+      <p id="percent">0%</p>
+
+    </div>
+
+  </div>
+
+
+  <!-- =========================
+       BUREAU PRINCIPAL
+  ========================== -->
+  <div id="desktop">
+
+    <header id="topbar">
+
+      <img
+        src="images/logo.png"
+        id="smallLogo"
+        alt="Logo GDA"
+      >
+
+      <h2>GARDE DE L'ADMINISTRATION</h2>
+
+    </header>
+
+
+    <!-- MENU LATÉRAL -->
+    <aside id="sidebar">
+
+      <button
+        id="officierGdaButton"
+        class="menuButton menuButtonPrincipal"
+        type="button"
+      >
+        🎖️ Officier GDA
+      </button>
+
+      <button
+        id="espaceGdaButton"
+        class="menuButton menuButtonPrincipal"
+        type="button"
+      >
+        🛡️ GDA
+      </button>
+
+      <button
+        id="effectifMembreGdaButton"
+        class="menuButton menuEspaceGda"
+        type="button"
+        hidden
+      >
+        👥 Effectif
+      </button>
+
+      <button
+        id="rapportMembreGdaButton"
+        class="menuButton menuEspaceGda"
+        type="button"
+        hidden
+      >
+        📝 Rapport
+      </button>
+
+      <button
+        id="demandeAbsenceGdaButton"
+        class="menuButton menuEspaceGda"
+        type="button"
+        hidden
+      >
+        📅 Demande d’absence
+      </button>
+
+      <button
+        id="retourEspaceGdaButton"
+        class="menuButton menuEspaceGda menuRetour"
+        type="button"
+        hidden
+      >
+        ← Retour
+      </button>
+
+      <button
+        id="specialisationsButton"
+        class="menuButton menuButtonPrincipal"
+        type="button"
+      >
+        🧩 Spécialisation
+      </button>
+
+      <button
+        id="instructeurButton"
+        class="menuButton menuSpecialisations"
+        type="button"
+        hidden
+      >
+        🎓 Instructeur
+      </button>
+
+      <button
+        id="suivisFormationInstructeurButton"
+        class="menuButton menuInstructeur"
+        type="button"
+        hidden
+      >
+        📚 Suivis de formation
+      </button>
+
+      <button
+        id="rapportInstructeurButton"
+        class="menuButton menuInstructeur"
+        type="button"
+        hidden
+      >
+        📝 Rapport Instructeur
+      </button>
+
+      <button
+        id="reglementInstructeurButton"
+        class="menuButton menuInstructeur"
+        type="button"
+        hidden
+      >
+        📜 Règlement instructeur
+      </button>
+
+      <button
+        id="archivesInstructeurButton"
+        class="menuButton menuInstructeur"
+        type="button"
+        hidden
+      >
+        🗄️ Archives
+      </button>
+
+      <button
+        id="retourInstructeurButton"
+        class="menuButton menuInstructeur menuRetour"
+        type="button"
+        hidden
+      >
+        ← Retour
+      </button>
+
+      <button
+        id="medecinButton"
+        class="menuButton menuSpecialisations"
+        type="button"
+        hidden
+      >
+        ⚕️ Médecin
+      </button>
+
+      <button
+        id="retourSpecialisationsButton"
+        class="menuButton menuSpecialisations menuRetour"
+        type="button"
+        hidden
+      >
+        ← Retour
+      </button>
+
+      <button
+        id="liensUtilesButton"
+        class="menuButton menuButtonPrincipal"
+        type="button"
+      >
+        🔗 Lien utile
+      </button>
+
+      <button
+        id="reglementGdaButton"
+        class="menuButton menuLiensUtiles"
+        type="button"
+        hidden
+      >
+        📜 Règlement GDA
+      </button>
+
+      <button
+        id="guideGdaButton"
+        class="menuButton menuLiensUtiles"
+        type="button"
+        hidden
+      >
+        📘 Guide GDA
+      </button>
+
+      <button
+        id="coursMartialButton"
+        class="menuButton menuLiensUtiles"
+        type="button"
+        hidden
+      >
+        ⚖️ Cours martial
+      </button>
+
+      <button
+        id="retourLiensUtilesButton"
+        class="menuButton menuLiensUtiles menuRetour"
+        type="button"
+        hidden
+      >
+        ← Retour
+      </button>
+
+      <button
+        id="effectifButton"
+        class="menuButton menuOfficier"
+        type="button"
+        hidden
+      >
+        📋 Effectif
+      </button>
+
+      <button
+        id="disponibilitesButton"
+        class="menuButton menuOfficier"
+        type="button"
+        hidden
+>
+         📆 Disponibilités du personnel
+        </button>
+
+      <button
+        id="rapportsButton"
+        class="menuButton menuOfficier"
+        type="button"
+        hidden
+      >
+        📝 Rapports
+      </button>
+
+      <button
+  id="departButton"
+  class="menuButton menuOfficier"
+  type="button"
+  hidden
+>
+  🚪 Départs
+</button>
+
+      <button
+        id="gestionPersonnelButton"
+        class="menuButton menuOfficier"
+        type="button"
+        hidden
+      >
+        👥 Gestion du personnel
+      </button>
+
+      <button
+        id="retourOfficierButton"
+        class="menuButton menuOfficier menuRetour"
+        type="button"
+        hidden
+      >
+        ← Retour
+      </button>
+
+      <button
+        id="administrationButton"
+        class="menuButton menuButtonPrincipal"
+        type="button"
+        hidden
+      >
+        ⚙ Administration
+      </button>
+
+      <button
+        id="permissionsButton"
+        class="menuButton menuAdministration"
+        type="button"
+        hidden
+      >
+        🔐 Permissions
+      </button>
+
+      <button
+        id="logsButton"
+        class="menuButton menuAdministration"
+        type="button"
+        hidden
+      >
+        📋 Logs
+      </button>
+
+      <button
+        id="retourAdministrationButton"
+        class="menuButton menuAdministration menuRetour"
+        type="button"
+        hidden
+      >
+        ← Retour
+      </button>
+
+    </aside>
+
+
+    <!-- ZONE OÙ LES MODULES S'AFFICHERONT -->
+    <main id="workspace">
+
+      <section id="welcomePanel">
+        <h3>Bienvenue dans l’interface GDA</h3>
+
+        <p>
+          Sélectionnez un module dans le menu de gauche.
+        </p>
+      </section>
+
+    </main>
+
+  </div>
+
+
+  <!-- =========================
+       VOILE ROUGE D'ALERTE
+  ========================== -->
+  <div id="alertOverlay"></div>
+
+
+  <!-- =========================
+       SCRIPTS DU SITE
+  ========================== -->
+
+  <!-- Script principal : connexion et bureau -->
+<script src="script.js?v=20260717-5"></script>
+
+  <!-- Module Effectif -->
+<script src="effectif.js?v=20260717-5"></script>
+<script src="effectif-public.js?v=20260717-5"></script>
+<script src="disponibilites.js?v=20260717-5"></script>
+<script src="depart.js?v=20260717-5"></script>
+<script src="rapports.js?v=20260717-5"></script>
+<script src="rapport-membre.js?v=20260717-5"></script>
+<script src="demande-absence.js?v=20260717-5"></script>
+<script src="gestion-personnel.js?v=20260717-5"></script>
+<script src="administration.js?v=20260717-5"></script>
+<script src="logs.js?v=20260717-5"></script>
+<script src="instructeur-archives.js?v=20260717-5"></script>
+<script src="instructeur-rapports.js?v=20260717-5"></script>
+<script src="instructeur-suivis.js?v=20260717-5"></script>
+
+</body>
+</html>

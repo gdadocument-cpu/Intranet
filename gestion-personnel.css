@@ -1,0 +1,545 @@
+#gestionPersonnelModule {
+  width: 100%;
+  color: #edf6ff;
+}
+
+.gestion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 16px;
+  padding: 20px 22px;
+  border: 1px solid rgba(76, 160, 232, 0.34);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(10, 46, 78, 0.9), rgba(5, 21, 39, 0.86));
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2), inset 0 0 20px rgba(61, 154, 235, 0.06);
+}
+
+.gestion-header h3 {
+  margin: 0 0 7px;
+  color: #fff;
+  font-size: 23px;
+  letter-spacing: 1.7px;
+}
+
+.gestion-header p,
+.gestion-bloc-titre p {
+  margin: 0;
+  color: #a4c3df;
+  line-height: 1.5;
+}
+
+.gestion-bouton-principal,
+.gestion-bouton-secondaire {
+  min-height: 42px;
+  padding: 10px 17px;
+  border-radius: 10px;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+.gestion-bouton-principal {
+  border: 1px solid #68bcff;
+  background: linear-gradient(135deg, #1974b7, #0c477d);
+  box-shadow: 0 0 15px rgba(43, 145, 232, .28);
+}
+
+.gestion-bouton-secondaire {
+  border: 1px solid rgba(137, 191, 235, .45);
+  background: rgba(7, 32, 58, .76);
+}
+
+.gestion-bouton-principal:hover,
+.gestion-bouton-secondaire:hover {
+  transform: translateY(-2px);
+  border-color: #b5e1ff;
+  box-shadow: 0 0 20px rgba(67, 165, 244, .38);
+}
+
+.gestion-bouton-principal:disabled {
+  opacity: .52;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.gestion-onglets {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding: 7px;
+  border: 1px solid rgba(74, 148, 213, .25);
+  border-radius: 13px;
+  background: rgba(4, 21, 39, .72);
+}
+
+.gestion-onglet {
+  flex: 1;
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: #9dbbd5;
+  background: transparent;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color .2s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+
+.gestion-onglet span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 25px;
+  height: 25px;
+  margin-left: 6px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: rgba(89, 163, 226, .16);
+}
+
+.gestion-onglet:hover,
+.gestion-onglet.actif {
+  color: #fff;
+  border-color: rgba(91, 181, 255, .5);
+  background: rgba(17, 75, 119, .55);
+  box-shadow: inset 0 0 14px rgba(72, 163, 238, .1);
+}
+
+.gestion-action-bloc,
+.gestion-historique {
+  padding: 21px;
+  border: 1px solid rgba(75, 151, 218, .28);
+  border-radius: 16px;
+  background: rgba(5, 24, 43, .78);
+  box-shadow: inset 0 0 20px rgba(52, 145, 226, .05);
+}
+
+.gestion-bloc-titre {
+  margin-bottom: 19px;
+}
+
+.gestion-bloc-titre h4 {
+  margin: 0 0 6px;
+  color: #fff;
+  font-size: 19px;
+}
+
+.gestion-formulaire {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.gestion-champ {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.gestion-champ > span {
+  color: #c5dbef;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.gestion-champ input,
+.gestion-champ select,
+.gestion-champ textarea {
+  width: 100%;
+  border: 1px solid rgba(74, 153, 222, .46);
+  border-radius: 9px;
+  outline: none;
+  color: #fff;
+  background: rgba(3, 17, 32, .9);
+  font: inherit;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+
+.gestion-champ input,
+.gestion-champ select {
+  min-height: 44px;
+  padding: 10px 12px;
+}
+
+.gestion-champ textarea {
+  min-height: 115px;
+  padding: 12px;
+  resize: vertical;
+  line-height: 1.55;
+}
+
+.gestion-champ input:focus,
+.gestion-champ select:focus,
+.gestion-champ textarea:focus {
+  border-color: #67bdff;
+  box-shadow: 0 0 13px rgba(53, 153, 238, .32);
+}
+
+.gestion-champ input[readonly] {
+  color: #8ed0ff;
+  background: rgba(12, 49, 78, .52);
+}
+
+.gestion-champ select:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.gestion-champ-large,
+.gestion-fiche-membre,
+.gestion-fiche-vide,
+.gestion-choix-zone,
+.gestion-formulaire-actions {
+  grid-column: 1 / -1;
+}
+
+.gestion-fiche-vide,
+.gestion-aucun-choix {
+  padding: 17px;
+  border: 1px dashed rgba(92, 164, 226, .35);
+  border-radius: 11px;
+  color: #8eabc5;
+  text-align: center;
+  background: rgba(6, 27, 48, .54);
+}
+
+.gestion-fiche-membre {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 11px;
+  padding: 14px;
+  border: 1px solid rgba(74, 165, 239, .32);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(16, 62, 98, .6), rgba(6, 27, 47, .62));
+}
+
+.gestion-fiche-membre > div {
+  padding: 12px;
+  border-radius: 9px;
+  background: rgba(2, 17, 31, .52);
+}
+
+.gestion-fiche-membre span,
+.gestion-log-details span,
+.gestion-resultat-compteur span {
+  display: block;
+  margin-bottom: 5px;
+  color: #8faec9;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .7px;
+}
+
+.gestion-fiche-membre strong {
+  color: #fff;
+}
+
+.gestion-fiche-large {
+  grid-column: 1 / -1;
+}
+
+.gestion-medailles-actuelles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.gestion-medailles-actuelles em {
+  padding: 6px 9px;
+  border: 1px solid rgba(231, 188, 76, .32);
+  border-radius: 999px;
+  color: #ffe09a;
+  background: rgba(107, 77, 12, .22);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.gestion-cache {
+  display: none;
+}
+
+.gestion-alerte-depart {
+  padding: 15px 17px;
+  border: 1px solid rgba(235, 113, 113, .4);
+  border-radius: 11px;
+  color: #ffd1d1;
+  background: rgba(107, 23, 28, .22);
+  line-height: 1.55;
+}
+
+.gestion-formulaire-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.gestion-filtres {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr auto;
+  align-items: end;
+  gap: 14px;
+  margin-bottom: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(78, 148, 208, .2);
+}
+
+.gestion-resultat-compteur {
+  min-width: 105px;
+  padding: 10px 15px;
+  border: 1px solid rgba(82, 163, 232, .3);
+  border-radius: 10px;
+  background: rgba(13, 57, 91, .42);
+  text-align: center;
+}
+
+.gestion-resultat-compteur strong {
+  color: #fff;
+  font-size: 24px;
+}
+
+.gestion-logs-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.gestion-log {
+  overflow: hidden;
+  border: 1px solid rgba(74, 150, 217, .28);
+  border-left: 4px solid #559edb;
+  border-radius: 13px;
+  background: linear-gradient(145deg, rgba(7, 31, 55, .9), rgba(4, 18, 33, .86));
+  box-shadow: 0 9px 22px rgba(0, 0, 0, .16);
+}
+
+.gestion-log-promotion { border-left-color: #49d98a; }
+.gestion-log-retrogradation { border-left-color: #e09b55; }
+.gestion-log-sanction { border-left-color: #ef6262; }
+.gestion-log-depart { border-left-color: #9aa8b5; }
+.gestion-log-medaille { border-left-color: #f2c75c; }
+
+.gestion-log header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(72, 145, 207, .17);
+  background: rgba(13, 53, 85, .3);
+}
+
+.gestion-log header strong,
+.gestion-log header em,
+.gestion-log-type {
+  display: block;
+}
+
+.gestion-log-type {
+  margin-bottom: 6px;
+  color: #81c8ff;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.gestion-log header strong {
+  color: #fff;
+  font-size: 17px;
+}
+
+.gestion-log header em {
+  margin-top: 3px;
+  color: #93afc8;
+  font-size: 12px;
+  font-style: normal;
+}
+
+.gestion-log time {
+  color: #9dbbd6;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.gestion-log-entete-droite {
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gestion-log-actions,
+.gestion-dialogue-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gestion-log-action {
+  padding: 7px 10px;
+  border: 1px solid rgba(111, 190, 249, .5);
+  border-radius: 8px;
+  background: rgba(10, 57, 94, .8);
+  color: #dff2ff;
+  cursor: pointer;
+}
+
+.gestion-log-action:hover {
+  border-color: #a9dcff;
+  background: rgba(17, 83, 133, .95);
+}
+
+.gestion-log-supprimer {
+  border-color: rgba(255, 112, 112, .55);
+  background: rgba(103, 25, 34, .78);
+  color: #ffdede;
+}
+
+.gestion-log-action:disabled {
+  opacity: .5;
+  cursor: wait;
+}
+
+.gestion-dialogue-log {
+  width: min(760px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  padding: 0;
+  overflow: auto;
+  border: 1px solid rgba(104, 188, 255, .55);
+  border-radius: 18px;
+  background: #071d31;
+  color: #edf7ff;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, .72);
+}
+
+.gestion-dialogue-log::backdrop {
+  background: rgba(1, 9, 18, .78);
+  backdrop-filter: blur(5px);
+}
+
+.gestion-formulaire-log {
+  padding: 22px;
+}
+
+.gestion-formulaire-log > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.gestion-formulaire-log h4,
+.gestion-formulaire-log p {
+  margin: 0;
+}
+
+.gestion-formulaire-log p {
+  margin-top: 6px;
+  color: #9ebbd3;
+}
+
+#gestionFermerEditionLog {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(140, 197, 239, .38);
+  border-radius: 50%;
+  background: rgba(4, 27, 47, .85);
+  color: #e8f5ff;
+  font-size: 25px;
+  cursor: pointer;
+}
+
+.gestion-formulaire-log-grille {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.gestion-dialogue-actions {
+  margin-top: 20px;
+}
+
+.gestion-log-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 15px 16px;
+}
+
+.gestion-log-details > div {
+  padding: 11px;
+  border-radius: 9px;
+  background: rgba(3, 17, 31, .52);
+}
+
+.gestion-log-details strong {
+  color: #e7f3fc;
+}
+
+.gestion-log-raison {
+  grid-column: 1 / -1;
+}
+
+.gestion-log-raison p {
+  margin: 0;
+  color: #c7d9e8;
+  line-height: 1.55;
+}
+
+.gestion-vide,
+.gestion-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 170px;
+  padding: 25px;
+  border: 1px dashed rgba(83, 159, 225, .4);
+  border-radius: 14px;
+  color: #a5c2dc;
+  text-align: center;
+  background: rgba(5, 24, 43, .55);
+}
+
+.gestion-erreur {
+  border-color: rgba(255, 89, 89, .5);
+  color: #ffb2b2;
+}
+
+@media (max-width: 850px) {
+  .gestion-header,
+  .gestion-log header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .gestion-formulaire,
+  .gestion-fiche-membre,
+  .gestion-filtres,
+  .gestion-formulaire-log-grille,
+  .gestion-log-details {
+    grid-template-columns: 1fr;
+  }
+
+  .gestion-champ-large,
+  .gestion-fiche-membre,
+  .gestion-fiche-vide,
+  .gestion-fiche-large,
+  .gestion-choix-zone,
+  .gestion-formulaire-actions,
+  .gestion-log-raison {
+    grid-column: 1;
+  }
+
+  .gestion-log-entete-droite {
+    align-items: flex-start;
+  }
+
+  .gestion-onglets {
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,1451 @@
+/* =========================
+   BASE GÉNÉRALE
+========================= */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  overflow: hidden;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: white;
+  font-family: Arial, Helvetica, sans-serif;
+
+  background:
+    linear-gradient(
+      rgba(0, 0, 0, 0.15),
+      rgba(0, 0, 0, 0.15)
+    ),
+    url("images/fond.png")
+    center
+    center
+    no-repeat;
+
+  background-size: cover;
+}
+
+
+/* =========================
+   ÉCRAN DE CONNEXION
+========================= */
+
+#boot {
+  width: min(520px, 90vw);
+
+  text-align: center;
+
+  opacity: 1;
+
+  transition:
+    opacity 0.28s ease,
+    transform 0.28s ease;
+}
+
+#boot.fade-out {
+  opacity: 0;
+  transform: scale(1.03);
+  pointer-events: none;
+}
+
+
+/* =========================
+   LOGO PRINCIPAL
+========================= */
+
+.logo-piece {
+  --diametre-piece: min(320px, 68vw);
+  --epaisseur-piece: 18px;
+  --demi-epaisseur: 9px;
+  --rayon-piece:
+    calc(var(--diametre-piece) / 2 - 5px);
+  --largeur-facette:
+    calc(var(--diametre-piece) * 0.132);
+
+  position: relative;
+
+  width: var(--diametre-piece);
+  aspect-ratio: 1;
+
+  margin: 0 auto;
+
+  transform-style: preserve-3d;
+
+  animation:
+    rotateVertical 7s linear infinite;
+}
+
+/* Halo circulaire commun aux deux faces, sans bord rectangulaire. */
+.logo-piece::before {
+  content: "";
+
+  position: absolute;
+  inset: -3%;
+
+  z-index: 0;
+
+  border: 1px solid rgba(91, 175, 255, 0.18);
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      circle,
+      transparent 64%,
+      rgba(63, 156, 255, 0.12) 73%,
+      rgba(63, 156, 255, 0.04) 79%,
+      transparent 82%
+    );
+
+  box-shadow:
+    0 0 16px rgba(63, 156, 255, 0.4),
+    0 0 34px rgba(63, 156, 255, 0.18),
+    inset 0 0 14px rgba(95, 185, 255, 0.2);
+
+  transform: translateZ(0);
+  pointer-events: none;
+
+  animation:
+    pulseHaloPiece
+    4s ease-in-out infinite;
+}
+
+.logo-face {
+  position: absolute;
+  inset: 0;
+
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  object-fit: contain;
+  backface-visibility: hidden;
+}
+
+#logo {
+  position: relative;
+  z-index: 3;
+
+  transform:
+    translateZ(var(--demi-epaisseur));
+  backface-visibility: hidden;
+
+}
+
+/*
+ * La face arrière est réellement retournée puis déplacée derrière la
+ * pièce. Lorsque la rotation atteint 180°, elle revient donc à l'endroit
+ * au lieu d'afficher le texte en miroir.
+ */
+.logo-face-arriere {
+  z-index: 3;
+
+  display: block;
+
+  transform:
+    rotateY(180deg)
+    translateZ(var(--demi-epaisseur));
+
+  backface-visibility: hidden;
+}
+
+/* Tranche métallique visible lorsque le logo se présente de côté. */
+.logo-tranche {
+  position: absolute;
+  inset: 0;
+
+  z-index: 2;
+
+  display: block;
+
+  transform-style: preserve-3d;
+  pointer-events: none;
+}
+
+.logo-facette {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+
+  display: block;
+
+  width: var(--largeur-facette);
+  height: var(--epaisseur-piece);
+
+  margin-top:
+    calc(var(--epaisseur-piece) * -0.5);
+  margin-left:
+    calc(var(--largeur-facette) * -0.5);
+
+  border-top:
+    1px solid rgba(215, 236, 255, 0.82);
+  border-bottom:
+    1px solid rgba(8, 25, 48, 0.92);
+
+  background:
+    linear-gradient(
+      180deg,
+      #08172c 0%,
+      #31577d 28%,
+      #a9c2d8 48%,
+      #52779a 68%,
+      #0b1d34 100%
+    );
+
+  box-shadow:
+    inset 0 0 3px rgba(255, 255, 255, 0.24),
+    0 0 3px rgba(55, 139, 225, 0.38);
+
+  transform:
+    rotateZ(var(--angle))
+    translateY(calc(var(--rayon-piece) * -1))
+    rotateX(90deg);
+
+  backface-visibility: visible;
+}
+
+h1 {
+  margin: 30px 0 18px;
+
+  font-size: clamp(20px, 4vw, 30px);
+  font-weight: 500;
+
+  letter-spacing: 4px;
+
+  text-shadow:
+    0 0 8px rgba(80, 170, 255, 0.55);
+}
+
+
+/* =========================
+   FORMULAIRE
+========================= */
+
+#login {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+
+  width: min(340px, 86vw);
+
+  margin: 35px auto 0;
+}
+
+.login-ligne {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 11px;
+}
+
+#username {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+
+  padding: 12px 14px;
+
+  border: 1px solid #2c73b7;
+  border-radius: 8px;
+
+  outline: none;
+
+  background: rgba(5, 20, 40, 0.75);
+  color: white;
+
+  font-size: 15px;
+
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+#username::placeholder {
+  color: rgba(195, 220, 250, 0.72);
+}
+
+#username:focus {
+  border-color: #4fa8ff;
+
+  box-shadow:
+    0 0 15px rgba(45, 140, 255, 0.85);
+}
+
+.login-memoriser {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 9px;
+  color: rgba(214, 233, 250, .86);
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.login-memoriser input {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: #4fa8ff;
+  cursor: pointer;
+}
+
+.login-memoriser:hover {
+  color: #fff;
+}
+
+#loginButton {
+  flex: 0 0 46px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 46px;
+  height: 46px;
+  padding: 0;
+
+  border: 1px solid #61b3ff;
+  border-radius: 50%;
+
+  color: #ffffff;
+  background:
+    radial-gradient(
+      circle at 35% 30%,
+      #4eabff,
+      #176bb5 58%,
+      #0a315d
+    );
+
+  font-size: 27px;
+  line-height: 1;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 0 12px rgba(61, 158, 255, 0.55),
+    inset 0 0 8px rgba(255, 255, 255, 0.18);
+
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    filter 0.2s ease;
+}
+
+#loginButton span {
+  display: block;
+  transform: translateY(-1px);
+  transition: transform 0.2s ease;
+}
+
+#loginButton:hover {
+  transform: scale(1.1);
+  border-color: #b8e1ff;
+  filter: brightness(1.18);
+  box-shadow:
+    0 0 10px rgba(104, 190, 255, 0.95),
+    0 0 26px rgba(49, 149, 255, 0.8),
+    inset 0 0 10px rgba(255, 255, 255, 0.28);
+}
+
+#loginButton:hover span {
+  transform: translate(3px, -1px);
+}
+
+#loginButton:active {
+  transform: scale(0.94);
+}
+
+#loginButton:focus-visible {
+  outline: 3px solid rgba(143, 207, 255, 0.72);
+  outline-offset: 4px;
+}
+
+#loginButton:disabled {
+  cursor: wait;
+  opacity: 0.72;
+  animation: connexionPulse 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes connexionPulse {
+  from {
+    box-shadow: 0 0 10px rgba(61, 158, 255, 0.45);
+  }
+
+  to {
+    box-shadow: 0 0 28px rgba(95, 185, 255, 0.95);
+  }
+}
+
+
+/* =========================
+   CONNEXION GOOGLE
+========================= */
+
+ {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+
+  margin-top: 12px;
+
+  text-align: center;
+}
+
+#googleInstruction {
+  margin: 0 0 15px;
+
+  color: #b8d7ff;
+
+  font-size: 15px;
+  line-height: 1.5;
+  letter-spacing: 0.5px;
+}
+
+#googleButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+
+  margin: 0 auto;
+}
+
+/*
+ * Le bouton Google est créé dans une iframe.
+ * Cette règle aide à le maintenir bien centré.
+ */
+#googleButton > div,
+#googleButton iframe {
+  margin-right: auto !important;
+  margin-left: auto !important;
+}
+
+
+/* =========================
+   CHARGEMENT
+========================= */
+
+#loading {
+  display: none;
+
+  width: 100%;
+
+  margin-top: 25px;
+}
+
+#bootText {
+  position: relative;
+  z-index: 10;
+
+  margin-top: 22px;
+
+  color: #b8d8ff;
+
+  font-size: 17px;
+  letter-spacing: 1px;
+}
+
+#bar {
+  width: 100%;
+  height: 13px;
+
+  margin-top: 28px;
+
+  overflow: hidden;
+
+  border: 1px solid #4a9cff;
+  border-radius: 999px;
+
+  background: rgba(4, 18, 35, 0.72);
+
+  box-shadow:
+    0 0 12px rgba(66, 155, 255, 0.3),
+    inset 0 0 10px rgba(66, 155, 255, 0.15);
+}
+
+#progress {
+  width: 0%;
+  height: 100%;
+
+  border-radius: inherit;
+
+  background:
+    linear-gradient(
+      90deg,
+      #0c4d91,
+      #3195ff,
+      #a7d6ff
+    );
+
+  box-shadow:
+    0 0 18px rgba(74, 169, 255, 0.85);
+
+  transition: width 0.08s linear;
+}
+
+#percent {
+  margin-top: 12px;
+
+  color: #a9d2ff;
+
+  font-size: 16px;
+  letter-spacing: 2px;
+}
+
+
+/* =========================
+   BUREAU PRINCIPAL
+========================= */
+
+#desktop {
+  position: fixed;
+  inset: 0;
+
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  grid-template-rows: 90px 1fr;
+
+  width: 100vw;
+  height: 100vh;
+
+  opacity: 0;
+  visibility: hidden;
+
+  transform: scale(0.98);
+
+  background:
+    linear-gradient(
+      rgba(0, 0, 0, 0.08),
+      rgba(0, 0, 0, 0.08)
+    ),
+    url("images/fond.png")
+    center
+    center
+    no-repeat;
+
+  background-size: cover;
+
+  transition:
+    opacity 0.9s ease,
+    transform 0.9s ease,
+    visibility 0.9s ease;
+}
+
+#desktop.visible {
+  opacity: 1;
+  visibility: visible;
+
+  transform: scale(1);
+}
+
+
+/* =========================
+   BARRE SUPÉRIEURE
+========================= */
+
+#topbar {
+  position: relative;
+  z-index: 200;
+
+  grid-column: 1 / 3;
+  grid-row: 1;
+
+  display: flex;
+  align-items: center;
+  gap: 20px;
+
+  padding: 15px 25px;
+
+  border-bottom:
+    1px solid rgba(80, 145, 220, 0.32);
+
+  background: rgba(4, 10, 20, 0.66);
+
+  backdrop-filter: blur(7px);
+
+  overflow: visible;
+}
+
+#smallLogo {
+  width: 60px;
+  height: 60px;
+
+  object-fit: contain;
+
+  animation:
+    rotateVertical 10s linear infinite,
+    pulseLogo 4s ease-in-out infinite;
+}
+
+#topbar h2 {
+  margin: 0;
+
+  font-size: 21px;
+  font-weight: 500;
+
+  letter-spacing: 3px;
+
+  text-shadow:
+    0 0 8px rgba(80, 170, 255, 0.45);
+}
+
+
+/* =========================
+   INFORMATIONS UTILISATEUR
+========================= */
+
+#userInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+
+  margin-left: 0;
+
+  padding: 10px 18px;
+
+  border:
+    1px solid rgba(255, 80, 80, 0.65);
+
+  border-radius: 14px;
+
+  background:
+    rgba(110, 0, 0, 0.35);
+
+  box-shadow:
+    0 0 14px rgba(255, 40, 40, 0.18),
+    inset 0 0 12px rgba(255, 70, 70, 0.08);
+}
+
+#userInfo strong {
+  font-size: 18px;
+  letter-spacing: 1px;
+}
+
+#userInfo span {
+  color: #ffc1c1;
+
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+
+/* =========================
+   PERSONNES CONNECTÉES
+========================= */
+
+#presenceEnLigne {
+  position: relative;
+  flex: 0 0 auto;
+  margin-left: 0;
+}
+
+/* =========================
+   NOTIFICATIONS D'ABSENCE
+========================= */
+
+#notificationsAbsenceCloche {
+  position: relative;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+#notificationsAbsenceBouton {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  padding: 0;
+  border: 1px solid rgba(239, 190, 73, 0.72);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #6d5520, #2d2108 72%);
+  color: #fff;
+  cursor: pointer;
+  font-size: 23px;
+  box-shadow: 0 0 14px rgba(239, 190, 73, 0.25), inset 0 0 10px rgba(255, 225, 140, 0.12);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#notificationsAbsenceBouton:hover,
+#notificationsAbsenceBouton[aria-expanded="true"] {
+  transform: translateY(-2px);
+  box-shadow: 0 0 22px rgba(239, 190, 73, 0.5), inset 0 0 12px rgba(255, 225, 140, 0.18);
+}
+
+#notificationsAbsenceNombre {
+  position: absolute;
+  top: -5px;
+  right: -6px;
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border: 2px solid #06101d;
+  border-radius: 999px;
+  background: #e7293f;
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
+  box-sizing: border-box;
+  box-shadow: 0 0 10px rgba(255, 45, 72, 0.58);
+}
+
+#notificationsAbsenceNombre[hidden],
+#notificationsAbsencePanneau[hidden] {
+  display: none;
+}
+
+#notificationsAbsencePanneau {
+  position: absolute;
+  z-index: 110;
+  top: calc(100% + 12px);
+  right: 0;
+  width: min(380px, calc(100vw - 30px));
+  overflow: hidden;
+  border: 1px solid rgba(222, 177, 66, 0.48);
+  border-radius: 14px;
+  background: rgba(7, 20, 34, 0.99);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.58);
+  backdrop-filter: blur(10px);
+}
+
+#notificationsAbsencePanneau > header {
+  padding: 13px 15px;
+  border-bottom: 1px solid rgba(222, 177, 66, 0.2);
+  background: rgba(99, 74, 18, 0.3);
+}
+
+#notificationsAbsencePanneau > header > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#notificationsAbsencePanneau > header strong { font-size: 15px; }
+#notificationsAbsencePanneau > header span { color: #e5c56f; font-size: 12px; }
+
+.notifications-absence-liste {
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.notification-absence-item {
+  display: flex;
+  gap: 11px;
+  padding: 11px;
+  border-radius: 10px;
+}
+
+.notification-absence-item + .notification-absence-item { border-top: 1px solid rgba(255,255,255,.06); }
+.notification-absence-item.non-lue { background: rgba(65, 145, 199, 0.12); }
+.notification-absence-item > span { color: #65d9a1; font-size: 20px; font-weight: 900; }
+.notification-absence-item > div { min-width: 0; }
+.notification-absence-item strong { display: block; font-size: 13px; }
+.notification-absence-item p { margin: 4px 0; color: #c4d3e1; font-size: 12px; line-height: 1.45; white-space: normal; }
+.notification-absence-item small { color: #7f99b1; font-size: 10px; }
+.notifications-absence-vide { margin: 0; padding: 24px 12px; color: #91a8bd; text-align: center; }
+
+#notificationsAbsencePanneau > footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 10px;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+
+#notificationsAbsencePanneau > footer button {
+  padding: 8px 10px;
+  border: 1px solid rgba(113, 175, 219, 0.35);
+  border-radius: 8px;
+  background: rgba(20, 65, 98, 0.7);
+  color: #eaf6ff;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+#notificationsAbsencePanneau > footer button:last-child {
+  border-color: rgba(222, 91, 107, 0.38);
+  background: rgba(104, 34, 44, 0.62);
+}
+
+#presenceEnLigneBouton {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  padding: 0;
+  border: 1px solid rgba(92, 184, 255, 0.72);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #245f94, #092a4a 72%);
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow:
+    0 0 14px rgba(67, 166, 244, 0.3),
+    inset 0 0 10px rgba(132, 207, 255, 0.12);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#presenceEnLigneBouton:hover,
+#presenceEnLigneBouton[aria-expanded="true"] {
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 22px rgba(75, 180, 255, 0.58),
+    inset 0 0 12px rgba(147, 215, 255, 0.18);
+}
+
+.presence-emoji {
+  font-size: 25px;
+  line-height: 1;
+}
+
+#presenceEnLigneNombre {
+  position: absolute;
+  top: -5px;
+  right: -6px;
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border: 2px solid #06101d;
+  border-radius: 999px;
+  background: #e7293f;
+  color: #ffffff;
+  font-size: 11px;
+  line-height: 1;
+  box-sizing: border-box;
+  box-shadow: 0 0 10px rgba(255, 45, 72, 0.58);
+}
+
+#presenceEnLignePanneau {
+  position: absolute;
+  z-index: 100;
+  top: calc(100% + 12px);
+  right: 0;
+  width: min(320px, calc(100vw - 30px));
+  overflow: hidden;
+  border: 1px solid rgba(82, 166, 230, 0.5);
+  border-radius: 14px;
+  background: rgba(5, 19, 34, 0.98);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+}
+
+#presenceEnLignePanneau[hidden] {
+  display: none;
+}
+
+#presenceEnLignePanneau > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 15px;
+  border-bottom: 1px solid rgba(91, 159, 211, 0.22);
+  background: rgba(20, 64, 99, 0.38);
+}
+
+#presenceEnLignePanneau > header strong {
+  font-size: 15px;
+}
+
+#presenceEnLignePanneau > header span {
+  color: #8fc8f1;
+  font-size: 12px;
+}
+
+.presence-liste {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.presence-personne {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px;
+  border-radius: 9px;
+}
+
+.presence-personne + .presence-personne {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.presence-personne > span {
+  display: grid;
+  place-items: center;
+  flex: 0 0 35px;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  background: rgba(35, 103, 156, 0.45);
+}
+
+.presence-personne div {
+  min-width: 0;
+}
+
+.presence-personne strong,
+.presence-personne small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.presence-personne strong {
+  font-size: 14px;
+}
+
+.presence-personne small {
+  margin-top: 3px;
+  color: #8faec8;
+  font-size: 11px;
+}
+
+.presence-seul {
+  margin: 0;
+  padding: 17px 12px;
+  color: #9bb7cd;
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+
+/* =========================
+   MENU LATÉRAL
+========================= */
+
+#sidebar {
+  grid-column: 1;
+  grid-row: 2;
+
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+
+  padding: 35px 24px;
+
+  border-right:
+    1px solid rgba(255, 70, 70, 0.25);
+
+  background:
+    rgba(10, 5, 8, 0.55);
+
+  backdrop-filter: blur(6px);
+}
+
+#sidebar[hidden] {
+  display: none !important;
+}
+
+.menuButton {
+  width: 100%;
+  min-height: 58px;
+
+  padding: 14px 22px;
+
+  border:
+    1px solid rgba(255, 90, 90, 0.75);
+
+  border-radius: 999px;
+
+  background:
+    rgba(120, 0, 0, 0.42);
+
+  color: white;
+
+  font-size: 17px;
+  text-align: left;
+  letter-spacing: 1px;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 0 12px rgba(255, 30, 30, 0.2),
+    inset 0 0 12px rgba(255, 60, 60, 0.08);
+
+  transition:
+    background 0.25s ease,
+    border-color 0.25s ease,
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.menuButton[hidden] {
+  display: none !important;
+}
+
+.menuButtonPrincipal {
+  border-color: rgba(95, 177, 245, .72);
+  background: linear-gradient(
+    135deg,
+    rgba(16, 73, 119, .86),
+    rgba(7, 37, 68, .9)
+  );
+  box-shadow: inset 0 0 18px rgba(87, 174, 244, .12);
+}
+
+/* Entrées principales différenciées */
+#officierGdaButton {
+  border-color: rgba(255, 91, 91, .9);
+  background: linear-gradient(
+    135deg,
+    rgba(145, 12, 20, .92),
+    rgba(75, 4, 12, .94)
+  );
+  box-shadow:
+    0 0 14px rgba(255, 45, 55, .2),
+    inset 0 0 18px rgba(255, 92, 92, .12);
+}
+
+#specialisationsButton,
+#liensUtilesButton {
+  border-color: rgba(255, 211, 76, .9);
+  background: linear-gradient(
+    135deg,
+    rgba(137, 98, 5, .94),
+    rgba(73, 48, 2, .96)
+  );
+  color: #fff4bd;
+  box-shadow:
+    0 0 14px rgba(255, 205, 55, .18),
+    inset 0 0 18px rgba(255, 221, 106, .1);
+}
+
+/* Toujours placé au pied de la navigation principale. */
+#administrationButton {
+  margin-top: auto;
+}
+
+.menuRetour {
+  margin-top: auto;
+  border-color: rgba(141, 174, 203, .52);
+  background: rgba(7, 25, 43, .78);
+  color: #bcd2e5;
+}
+
+#notificationsGDA {
+  display: grid;
+  gap: 9px;
+  pointer-events: none;
+  position: fixed;
+  right: 22px;
+  top: 84px;
+  width: min(360px, calc(100vw - 32px));
+  z-index: 100000;
+}
+
+.notification-gda {
+  background: rgba(7, 27, 46, .97);
+  border: 1px solid rgba(91, 188, 239, .45);
+  border-radius: 11px;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, .38);
+  color: #eaf7ff;
+  opacity: 0;
+  padding: 13px 16px;
+  transform: translateX(18px);
+  transition: opacity .2s ease, transform .2s ease;
+}
+
+.notification-gda-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.notification-gda-succes {
+  border-color: rgba(70, 220, 145, .58);
+}
+
+.notification-gda-erreur {
+  border-color: rgba(255, 91, 91, .65);
+}
+
+.menuButton:hover {
+  border-color:
+    rgba(255, 130, 130, 1);
+
+  background:
+    rgba(190, 15, 15, 0.65);
+
+  transform:
+    translateX(8px);
+
+  box-shadow:
+    0 0 22px rgba(255, 40, 40, 0.5),
+    inset 0 0 16px rgba(255, 90, 90, 0.14);
+}
+
+#officierGdaButton:hover {
+  border-color: #ff8585;
+  background: linear-gradient(
+    135deg,
+    rgba(195, 20, 29, .96),
+    rgba(105, 5, 15, .98)
+  );
+  box-shadow:
+    0 0 24px rgba(255, 48, 58, .48),
+    inset 0 0 18px rgba(255, 116, 116, .15);
+}
+
+#specialisationsButton:hover,
+#liensUtilesButton:hover {
+  border-color: #ffe080;
+  background: linear-gradient(
+    135deg,
+    rgba(181, 132, 9, .97),
+    rgba(99, 66, 3, .98)
+  );
+  box-shadow:
+    0 0 24px rgba(255, 207, 57, .4),
+    inset 0 0 18px rgba(255, 229, 132, .14);
+}
+
+.menuButton:active {
+  transform:
+    translateX(5px)
+    scale(0.98);
+}
+
+
+/* =========================
+   ZONE DE TRAVAIL
+========================= */
+
+#workspace {
+  position: relative;
+  z-index: 1;
+
+  grid-column: 2;
+  grid-row: 2;
+
+  margin: 25px;
+  padding: 30px;
+
+  overflow: auto;
+
+  border:
+    1px solid rgba(80, 145, 220, 0.3);
+
+  border-radius: 20px;
+
+  background:
+    rgba(5, 15, 30, 0.48);
+
+  backdrop-filter: blur(5px);
+
+  box-shadow:
+    inset 0 0 25px rgba(30, 100, 180, 0.1),
+    0 0 20px rgba(0, 0, 0, 0.4);
+}
+
+.welcome-membre {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  min-height: 100%;
+  padding: 30px;
+  text-align: center;
+}
+
+.welcome-membre-icone {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  margin-bottom: 18px;
+  border: 1px solid rgba(91, 225, 151, .7);
+  border-radius: 50%;
+  background: rgba(28, 112, 72, .28);
+  color: #72efad;
+  font-size: 36px;
+  box-shadow: 0 0 28px rgba(68, 220, 139, .22);
+}
+
+.welcome-membre h3 {
+  margin: 0 0 12px;
+  color: #eff8ff;
+  font-size: clamp(25px, 4vw, 38px);
+}
+
+.welcome-membre p {
+  margin: 0;
+  color: #a9c3d9;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.bouton-lien-externe-gda {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin-top: 12px;
+  padding: 0 22px;
+  border: 1px solid rgba(93, 174, 238, .65);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #17649c, #1e83c5);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 10px 28px rgba(15, 112, 177, .3);
+  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+
+.bouton-lien-externe-gda:hover,
+.bouton-lien-externe-gda:focus-visible {
+  transform: translateY(-2px);
+  filter: brightness(1.12);
+  box-shadow: 0 14px 34px rgba(30, 131, 197, .42);
+}
+
+.integration-specialisation {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 100%;
+  gap: 14px;
+}
+
+.integration-specialisation-entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border: 1px solid rgba(86, 166, 231, .34);
+  border-radius: 13px;
+  background: rgba(6, 31, 54, .78);
+}
+
+.integration-specialisation-entete span {
+  color: #7fbce9;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.integration-specialisation-entete h3 {
+  margin: 5px 0 0;
+  color: #f1f8ff;
+}
+
+.integration-specialisation-frame {
+  display: block;
+  width: 100%;
+  min-height: calc(100vh - 225px);
+  flex: 1 1 auto;
+  border: 1px solid rgba(93, 174, 238, .42);
+  border-radius: 15px;
+  background: #06111d;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, .3);
+}
+
+
+/* =========================
+   VOILE ROUGE D’ALERTE
+========================= */
+
+#alertOverlay {
+  position: fixed;
+  inset: 0;
+
+  z-index: 5;
+
+  opacity: 0;
+
+  pointer-events: none;
+
+  background:
+    radial-gradient(
+      circle,
+      rgba(255, 0, 0, 0.06) 0%,
+      rgba(180, 0, 0, 0.13) 48%,
+      rgba(120, 0, 0, 0.27) 100%
+    );
+
+  transition:
+    opacity 0.6s ease;
+}
+
+#alertOverlay.visible {
+  opacity: 1;
+}
+
+
+/* =========================
+   ANIMATIONS
+========================= */
+
+@keyframes rotateVertical {
+  from {
+    transform:
+      perspective(1000px)
+      rotateY(0deg);
+  }
+
+  to {
+    transform:
+      perspective(1000px)
+      rotateY(360deg);
+  }
+}
+
+@keyframes pulseHaloPiece {
+  0%,
+  100% {
+    opacity: 0.62;
+    box-shadow:
+      0 0 13px rgba(63, 156, 255, 0.32),
+      0 0 28px rgba(63, 156, 255, 0.14),
+      inset 0 0 11px rgba(95, 185, 255, 0.16);
+  }
+
+  50% {
+    opacity: 1;
+    box-shadow:
+      0 0 20px rgba(83, 178, 255, 0.58),
+      0 0 42px rgba(63, 156, 255, 0.25),
+      inset 0 0 17px rgba(115, 200, 255, 0.25);
+  }
+}
+
+
+/* =========================
+   VERSION MOBILE
+========================= */
+
+@media (max-width: 750px) {
+  #desktop {
+    grid-template-columns: 1fr;
+    grid-template-rows: 80px auto 1fr;
+  }
+
+  #topbar {
+    grid-column: 1;
+    grid-row: 1;
+
+    padding: 10px 14px;
+  }
+
+  #topbar h2 {
+    font-size: 14px;
+    letter-spacing: 1px;
+  }
+
+  #smallLogo {
+    width: 48px;
+    height: 48px;
+  }
+
+  #userInfo {
+    padding: 7px 10px;
+  }
+
+  #userInfo strong {
+    font-size: 13px;
+  }
+
+  #userInfo span {
+    font-size: 11px;
+  }
+
+  #presenceEnLigneBouton {
+    width: 43px;
+    height: 43px;
+  }
+
+  #notificationsAbsenceBouton {
+    width: 43px;
+    height: 43px;
+    font-size: 20px;
+  }
+
+  .presence-emoji {
+    font-size: 21px;
+  }
+
+  #presenceEnLignePanneau {
+    position: fixed;
+    top: 73px;
+    right: 10px;
+    width: min(320px, calc(100vw - 20px));
+  }
+
+  #notificationsAbsencePanneau {
+    position: fixed;
+    top: 73px;
+    right: 10px;
+    width: min(380px, calc(100vw - 20px));
+  }
+
+  #sidebar {
+    grid-column: 1;
+    grid-row: 2;
+
+    flex-direction: row;
+
+    padding: 12px;
+
+    overflow-x: auto;
+
+    border-right: none;
+    border-bottom:
+      1px solid rgba(255, 70, 70, 0.25);
+  }
+
+  .menuButton {
+    flex: 0 0 auto;
+
+    width: auto;
+    min-height: 48px;
+
+    padding: 10px 18px;
+
+    font-size: 14px;
+  }
+
+  /* Sur mobile le menu devient horizontal : aucun décalage vertical. */
+  #administrationButton {
+    margin-top: 0;
+  }
+
+  #workspace {
+    grid-column: 1;
+    grid-row: 3;
+
+    margin: 12px;
+    padding: 18px;
+  }
+}
+
+@media (max-width: 520px) {
+  #topbar h2 {
+    display: none;
+  }
+}
