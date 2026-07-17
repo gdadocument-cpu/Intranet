@@ -12,10 +12,12 @@ const SECURITY_HEADERS = {
     "object-src 'none'",
     "upgrade-insecure-requests"
   ].join("; "),
+
   "X-Frame-Options": "DENY",
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "no-referrer",
-  "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+  "Permissions-Policy":
+    "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
 };
 
 export default {
