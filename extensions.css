@@ -139,6 +139,21 @@ button:disabled { cursor: not-allowed; filter: grayscale(.35); opacity: .58; }
 .actions-suivi-instructeur .supprimer,
 .actions-suivi-instructeur .refuser { background: rgba(151,38,49,.84); }
 .actions-suivi-instructeur .accepter { background: rgba(27,134,82,.84); }
+.actions-suivi-instructeur .transferer { background: rgba(98,75,175,.86); }
+.transfert-gerance-suivi {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.transfert-gerance-suivi select {
+  background: rgba(13,42,62,.92);
+  border: 1px solid rgba(115,180,217,.42);
+  border-radius: 999px;
+  color: #eef8ff;
+  min-width: 210px;
+  padding: 9px 13px;
+}
 .formulaire-suivi-instructeur select {
   background: rgba(13,42,62,.82);
   border: 1px solid rgba(109,162,195,.3);

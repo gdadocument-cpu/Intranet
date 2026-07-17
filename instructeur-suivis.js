@@ -3,6 +3,7 @@ let nouveauxArrivantsInstructeur = [];
 let suiviFormationOuvert = "";
 let nouvelArrivantInstructeurOuvert = "";
 let instructeursDisponiblesSuivi = [];
+let gerantsDisponiblesSuivi = [];
 let gerantConnecteSuivi = "";
 let suivisFormationPeutModifier = false;
 let suivisFormationInstructeurCharges = false;
@@ -63,6 +64,9 @@ function appliquerDonneesSuivisFormationInstructeur(resultat) {
     : [];
   instructeursDisponiblesSuivi = Array.isArray(resultat.instructeurs)
     ? resultat.instructeurs
+    : [];
+  gerantsDisponiblesSuivi = Array.isArray(resultat.gerants)
+    ? resultat.gerants
     : [];
   gerantConnecteSuivi = resultat.gerantConnecte ||
     sessionStorage.getItem("identifiantUtilisateur") || "";
@@ -416,6 +420,9 @@ function afficherAccueilSuivisFormationInstructeur() {
   document.querySelectorAll("[data-decision-suivi]").forEach(function (bouton) {
     bouton.addEventListener("click", deciderSuiviInstructeur);
   });
+  document.querySelectorAll("[data-transferer-suivi]").forEach(function (bouton) {
+    bouton.addEventListener("click", transfererGeranceSuiviInstructeur);
+  });
 }
 
 function creerAlerteNouvelArrivantInstructeur(personne) {
@@ -663,6 +670,9 @@ function afficherListeSuivisFormationInstructeur() {
   document.querySelectorAll("[data-decision-suivi]").forEach(function (bouton) {
     bouton.addEventListener("click", deciderSuiviInstructeur);
   });
+  document.querySelectorAll("[data-transferer-suivi]").forEach(function (bouton) {
+    bouton.addEventListener("click", transfererGeranceSuiviInstructeur);
+  });
 }
 
 function creerCarteSuiviInstructeur(suivi) {
@@ -684,10 +694,13 @@ function creerCarteSuiviInstructeur(suivi) {
       ${detailSuiviInstructeur("Nombre de rapports", suivi.nombreRapports)}
       ${detailSuiviInstructeur("Prises de service", suivi.prisesService)}
       ${detailSuiviInstructeur("Date exacte de fin", suivi.dateFin)}
-      ${detailSuiviInstructeur(
-        "Date de fin après absence",
-        suivi.dateFinApresAbsence || suivi.dateFin
-      )}
+      ${Number(suivi.joursAbsencePlanifies || 0) > 0 && suivi.dateFinApresAbsence
+        ? detailSuiviInstructeur(
+            "Date de fin après absence",
+            suivi.dateFinApresAbsence,
+            "detail-suivi-absence"
+          )
+        : ""}
       ${detailSuiviInstructeur("Commentaire", suivi.commentaire)}
       ${detailSuiviInstructeur("Sanction", suivi.sanction)}
       ${creerActionsSuiviInstructeur(suivi)}
@@ -700,12 +713,26 @@ function creerActionsSuiviInstructeur(suivi) {
     <button type="button" class="modifier" data-modifier-suivi="${echapperRapportInstructeur(suivi.id)}">✎ Modifier</button>
     <button type="button" class="supprimer" data-supprimer-suivi="${echapperRapportInstructeur(suivi.id)}">🗑 Supprimer</button>
   ` : "";
-  const decision = suivisFormationPeutModifier && suivi.peutDecider ? `
+  const decision = suivi.peutDecider ? `
     <button type="button" class="accepter" data-decision-suivi="${echapperRapportInstructeur(suivi.id)}" data-decision="ACCEPTE">✓ Accepter</button>
     <button type="button" class="refuser" data-decision-suivi="${echapperRapportInstructeur(suivi.id)}" data-decision="REFUSE">✕ Refuser</button>
   ` : "";
-  return administration || decision
-    ? `<div class="actions-suivi-instructeur">${administration}${decision}</div>`
+  const gerantActuel = normaliserValeurRapportInstructeur(suivi.gerant);
+  const optionsGerants = gerantsDisponiblesSuivi.filter(function (gerant) {
+    return normaliserValeurRapportInstructeur(gerant.libelle) !== gerantActuel;
+  }).map(function (gerant) {
+    return `<option value="${echapperRapportInstructeur(gerant.nom)}">${echapperRapportInstructeur(gerant.libelle)}${gerant.grade ? " — " + echapperRapportInstructeur(gerant.grade) : ""}</option>`;
+  }).join("");
+  const transfert = suivi.peutTransferer && optionsGerants ? `
+    <span class="transfert-gerance-suivi">
+      <select aria-label="Nouveau gérant" data-nouveau-gerant-suivi="${echapperRapportInstructeur(suivi.id)}">
+        <option value="">Nouveau gérant…</option>${optionsGerants}
+      </select>
+      <button type="button" class="transferer" data-transferer-suivi="${echapperRapportInstructeur(suivi.id)}">⇄ Transférer</button>
+    </span>
+  ` : "";
+  return administration || decision || transfert
+    ? `<div class="actions-suivi-instructeur">${administration}${decision}${transfert}</div>`
     : "";
 }
 
@@ -784,7 +811,6 @@ async function supprimerSuiviInstructeur(evenement) {
 }
 
 async function deciderSuiviInstructeur(evenement) {
-  if (!suivisFormationPeutModifier) return;
   const bouton = evenement.currentTarget;
   const decision = bouton.dataset.decision;
   let raison = "";
@@ -809,14 +835,57 @@ async function deciderSuiviInstructeur(evenement) {
   }
 }
 
+async function transfererGeranceSuiviInstructeur(evenement) {
+  const bouton = evenement.currentTarget;
+  const suiviId = bouton.dataset.transfererSuivi;
+  const selecteur = document.querySelector(
+    '[data-nouveau-gerant-suivi="' + CSS.escape(suiviId) + '"]'
+  );
+  const nouveauGerant = selecteur ? selecteur.value : "";
+  if (!nouveauGerant) {
+    if (typeof afficherNotificationGDA === "function") {
+      afficherNotificationGDA("Choisissez d’abord le nouveau gérant.", "erreur");
+    }
+    return;
+  }
+  const suivi = suivisFormationInstructeur.find(function (element) {
+    return element.id === suiviId;
+  });
+  if (!window.confirm(
+    "Transférer la gérance du suivi de " + (suivi ? suivi.matricule : "cette personne") +
+    " à " + nouveauGerant + " ?"
+  )) return;
+  bouton.disabled = true;
+  try {
+    const resultat = await requeteRapportInstructeur(
+      "transfererGeranceSuiviFormationInstructeur",
+      { suiviId: suiviId, nouveauGerant: nouveauGerant },
+      "POST"
+    );
+    if (typeof afficherNotificationGDA === "function") {
+      afficherNotificationGDA(resultat.message, "succes");
+    }
+    await ouvrirSuivisFormationInstructeur(true);
+  } catch (erreur) {
+    bouton.disabled = false;
+    if (typeof afficherNotificationGDA === "function") {
+      afficherNotificationGDA(erreur.message, "erreur");
+    }
+  }
+}
+
 function convertirDateSuiviEnISO(valeur) {
   const morceaux = String(valeur || "").match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   return morceaux ? morceaux[3] + "-" + morceaux[2] + "-" + morceaux[1] : "";
 }
 
-function detailSuiviInstructeur(libelle, valeur) {
+function detailSuiviInstructeur(libelle, valeur, classeSupplementaire) {
   const large = normaliserValeurRapportInstructeur(libelle).includes("COMMENTAIRE");
-  return `<div class="${large ? "detail-suivi-large" : ""}"><span>${libelle}</span><strong>${valeurSuiviInstructeur(valeur)}</strong></div>`;
+  const classes = [
+    large ? "detail-suivi-large" : "",
+    classeSupplementaire || ""
+  ].filter(Boolean).join(" ");
+  return `<div class="${classes}"><span>${libelle}</span><strong>${valeurSuiviInstructeur(valeur)}</strong></div>`;
 }
 
 function valeurSuiviInstructeur(valeur) {

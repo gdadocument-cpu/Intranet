@@ -2057,6 +2057,17 @@ async function envoyerNouveauDepart(
       true
     );
 
+    if (typeof invaliderCacheLecturesActionsGDA === "function") {
+      invaliderCacheLecturesActionsGDA([
+        "recupererDeparts",
+        "recupererEffectif",
+        "recupererGestionPersonnel",
+        "recupererAdministration"
+      ]);
+    } else if (typeof window.invaliderCacheEffectifGDA === "function") {
+      window.invaliderCacheEffectifGDA();
+    }
+
     appliquerDonneesDeparts(resultat, false);
     categorieDepartOuverte = null;
     personneDepartOuverte = null;
@@ -2186,6 +2197,11 @@ function convertirDateDepartClient(
   const valeur =
     String(texte || "").trim();
 
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(valeur)) {
+    const dateHeure = new Date(valeur);
+    return isNaN(dateHeure.getTime()) ? null : dateHeure;
+  }
+
   const correspondanceISO =
     valeur.match(
       /^(\d{4})-(\d{2})-(\d{2})$/
@@ -2225,6 +2241,19 @@ function convertirDateDepartClient(
   }
 
   return null;
+}
+
+function valeurDateDepartPourChamp(texte) {
+  const valeur = String(texte || "").trim();
+  const iso = valeur.match(/^(\d{4}-\d{2}-\d{2})(?:T.*)?$/);
+  if (iso) return iso[1];
+  const date = convertirDateDepartClient(valeur);
+  if (!date) return "";
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0")
+  ].join("-");
 }
 
 
@@ -2592,7 +2621,7 @@ function ouvrirModificationDepart(
               type="date"
               lang="fr-FR"
               value="${echapperHTML(
-                entree.dateDepart || ""
+                valeurDateDepartPourChamp(entree.dateDepart)
               )}"
               required
             >
@@ -2610,7 +2639,7 @@ function ouvrirModificationDepart(
               type="date"
               lang="fr-FR"
               value="${echapperHTML(
-                entree.dateRetour || ""
+                valeurDateDepartPourChamp(entree.dateRetour)
               )}"
               ${estPermanent ? "disabled" : ""}
             >
@@ -2727,6 +2756,7 @@ function ouvrirModificationDepart(
     );
 
   if (statut && dateRetour) {
+    dateRetour.dataset.valeurConservee = dateRetour.value;
     statut.addEventListener(
       "change",
       function () {
@@ -2737,7 +2767,12 @@ function ouvrirModificationDepart(
           permanent;
 
         if (permanent) {
+          if (dateRetour.value) {
+            dateRetour.dataset.valeurConservee = dateRetour.value;
+          }
           dateRetour.value = "";
+        } else if (!dateRetour.value) {
+          dateRetour.value = dateRetour.dataset.valeurConservee || "";
         }
       }
     );

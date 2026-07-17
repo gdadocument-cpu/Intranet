@@ -60,7 +60,7 @@ async function chargerGestionPersonnel() {
     const url =
       GESTION_PERSONNEL_API_URL +
       "?action=recupererGestionPersonnel" +
-      "&hierarchie=1" +
+      "&hierarchie=3" +
       "&identifiant=" +
       encodeURIComponent(identifiant);
 

@@ -1,0 +1,13 @@
+.details-suivi-instructeur > div.detail-suivi-absence {
+  background: linear-gradient(135deg, rgba(126, 91, 8, 0.78), rgba(69, 48, 4, 0.88));
+  border: 1px solid rgba(255, 204, 61, 0.9);
+  box-shadow: 0 0 18px rgba(255, 190, 28, 0.2);
+}
+
+.details-suivi-instructeur > div.detail-suivi-absence span {
+  color: #ffe08a;
+}
+
+.details-suivi-instructeur > div.detail-suivi-absence strong {
+  color: #fff4c7;
+}

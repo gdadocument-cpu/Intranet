@@ -259,11 +259,12 @@ const INVALIDATIONS_CACHE_GDA = {
   enregistrerRapportFormationInstructeur: ["recupererRapportsInstructeur", "recupererSuivisFormationInstructeur"],
   modifierRapportInstructeur: ["recupererRapportsInstructeur", "recupererSuivisFormationInstructeur", "recupererMesSuivisInstructeur"],
   supprimerRapportInstructeur: ["recupererRapportsInstructeur", "recupererSuivisFormationInstructeur", "recupererMesSuivisInstructeur"],
-  ajouterSuiviFormationInstructeur: ["recupererSuivisFormationInstructeur", "recupererMesSuivisInstructeur"],
-  demarrerSuiviFormationInstructeur: ["recupererSuivisFormationInstructeur", "recupererMesSuivisInstructeur"],
+  ajouterSuiviFormationInstructeur: ["recupererSuivisFormationInstructeur", "recupererMesSuivisInstructeur", "recupererEffectif", "recupererEffectifPublic", "recupererGestionPersonnel", "recupererAdministration"],
+  demarrerSuiviFormationInstructeur: ["recupererSuivisFormationInstructeur", "recupererMesSuivisInstructeur", "recupererEffectif", "recupererEffectifPublic", "recupererGestionPersonnel", "recupererAdministration"],
   modifierSuiviFormationInstructeur: ["recupererSuivisFormationInstructeur", "recupererMesSuivisInstructeur"],
   supprimerSuiviFormationInstructeur: ["recupererSuivisFormationInstructeur", "recupererMesSuivisInstructeur"],
-  deciderSuiviFormationInstructeur: ["recupererSuivisFormationInstructeur", "recupererMesSuivisInstructeur", "recupererArchivesInstructeur"],
+  transfererGeranceSuiviFormationInstructeur: ["recupererSuivisFormationInstructeur", "recupererMesSuivisInstructeur"],
+  deciderSuiviFormationInstructeur: ["recupererSuivisFormationInstructeur", "recupererMesSuivisInstructeur", "recupererArchivesInstructeur", "recupererEffectif", "recupererEffectifPublic", "recupererGestionPersonnel", "recupererAdministration", "recupererDeparts"],
   mettreAJourMonSuiviInstructeur: ["recupererSuivisFormationInstructeur", "recupererMesSuivisInstructeur"],
   supprimerArchiveInstructeur: ["recupererArchivesInstructeur"]
 };
@@ -337,6 +338,10 @@ function invaliderCacheLecturesActionsGDA(actions) {
   for (const [cle, entree] of cacheLecturesGDA.entries()) {
     if (cibles.has(entree.action)) cacheLecturesGDA.delete(cle);
   }
+  if (
+    cibles.has("recupererEffectif") &&
+    typeof window.invaliderCacheEffectifGDA === "function"
+  ) window.invaliderCacheEffectifGDA();
   if (
     cibles.has("recupererArchivesInstructeur") &&
     typeof window.invaliderCacheArchivesInstructeurGDA === "function"
@@ -1094,7 +1099,8 @@ function utilisateurEstResponsableInstPrincipalGDA() {
 function utilisateurPeutConsulterSuivisFormationGDA() {
   return utilisateurEstProprietaireOuCoproprietaireGDA() ||
     utilisateurEstOfficierGDA() ||
-    utilisateurPossedeRoleGestionInstructeurGDA();
+    utilisateurPossedeRoleGestionInstructeurGDA() ||
+    utilisateurAPermission("suivis_decider_tous");
 }
 
 function utilisateurPeutAdministrerSuivisFormationGDA() {
