@@ -254,6 +254,7 @@ const INVALIDATIONS_CACHE_GDA = {
   modifierLogGestionPersonnel: ["recupererGestionPersonnel"],
   supprimerLogGestionPersonnel: ["recupererGestionPersonnel"],
   modifierMembreEffectif: ["recupererEffectif", "recupererEffectifPublic", "recupererGestionPersonnel", "recupererAdministration"],
+  ajouterMembreEffectif: ["recupererEffectif", "recupererEffectifPublic", "recupererGestionPersonnel", "recupererAdministration"],
   enregistrerRapportTestInstructeur: ["recupererRapportsInstructeur", "recupererSuivisFormationInstructeur", "recupererMesSuivisInstructeur"],
   enregistrerRapportFormationInstructeur: ["recupererRapportsInstructeur", "recupererSuivisFormationInstructeur"],
   modifierRapportInstructeur: ["recupererRapportsInstructeur", "recupererSuivisFormationInstructeur", "recupererMesSuivisInstructeur"],

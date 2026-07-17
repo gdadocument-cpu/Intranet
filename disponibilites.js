@@ -10,6 +10,7 @@ let disponibilitesMembres = [];
 let absencesActives = [];
 let historiqueAbsences = [];
 let disponibilitesPeutGerer = false;
+let disponibilitesPeutModifier = false;
 let disponibilitesPeutSupprimer = false;
 let disponibilitesChargees = false;
 let demandesAbsenceEnAttente = [];
@@ -114,6 +115,9 @@ function appliquerDonneesDisponibilites(resultat, avecMembres) {
   }
   if (typeof resultat.peutGerer === "boolean") {
     disponibilitesPeutGerer = resultat.peutGerer;
+  }
+  if (typeof resultat.peutModifier === "boolean") {
+    disponibilitesPeutModifier = resultat.peutModifier;
   }
   if (typeof resultat.peutSupprimer === "boolean") {
     disponibilitesPeutSupprimer = resultat.peutSupprimer;
@@ -731,10 +735,10 @@ function creerDetailsAbsence(
     utilisateurPeutModifierAbsences();
 
   const boutonsEdition =
-    (!historique && peutModifier) || disponibilitesPeutSupprimer
+    peutModifier || disponibilitesPeutSupprimer
       ? `
         <div class="disponibilites-actions">
-          ${!historique && peutModifier ? `
+          ${peutModifier ? `
             <button
               class="disponibilites-bouton-secondaire"
               type="button"
@@ -744,14 +748,14 @@ function creerDetailsAbsence(
               ✏ Modifier
             </button>
 
-            <button
+            ${!historique ? `<button
               class="disponibilites-bouton-retour"
               type="button"
               data-action="retour-anticipe"
               data-ligne="${absence.ligne}"
             >
               ↩ Retour anticipé
-            </button>
+            </button>` : ""}
           ` : ""}
           ${disponibilitesPeutSupprimer ? `
             <button
@@ -1889,7 +1893,7 @@ function filtrerEtTrierAbsences(
 }
 
 function utilisateurPeutModifierAbsences() {
-  return disponibilitesPeutGerer;
+  return disponibilitesPeutModifier || disponibilitesPeutGerer;
 }
 
 

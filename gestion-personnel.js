@@ -12,6 +12,7 @@ let gestionMembres = [];
 let gestionLogs = [];
 let gestionGrades = [];
 let gestionSanctions = [];
+let gestionDureesBlacklist = [];
 let gestionMedailles = [];
 let gestionVue = "action";
 let gestionRecherche = "";
@@ -59,6 +60,7 @@ async function chargerGestionPersonnel() {
     const url =
       GESTION_PERSONNEL_API_URL +
       "?action=recupererGestionPersonnel" +
+      "&hierarchie=1" +
       "&identifiant=" +
       encodeURIComponent(identifiant);
 
@@ -101,6 +103,9 @@ function appliquerDonneesGestionPersonnel(resultat, complet) {
   }
   if (complet && Array.isArray(resultat.sanctions)) {
     gestionSanctions = resultat.sanctions;
+  }
+  if (complet && Array.isArray(resultat.dureesBlacklist)) {
+    gestionDureesBlacklist = resultat.dureesBlacklist;
   }
   if (complet && Array.isArray(resultat.medailles)) {
     gestionMedailles = resultat.medailles;
@@ -218,6 +223,8 @@ function creerFormulaireGestion() {
             <option value="Rétrogradation">Rétrogradation</option>
             <option value="Sanction">Sanction</option>
             <option value="Départ">Départ</option>
+            <option value="Licenciement">Licenciement</option>
+            <option value="Blacklist">Blacklist</option>
             <option value="Médaille">Médaille</option>
           </select>
         </label>
@@ -282,6 +289,8 @@ function creerHistoriqueGestion() {
               "Rétrogradation",
               "Sanction",
               "Départ",
+              "Licenciement",
+              "Blacklist",
               "Médaille"
             ].map(type => `
               <option
@@ -331,7 +340,7 @@ function creerHistoriqueGestion() {
               <label class="gestion-champ">
                 <span>Type d’action</span>
                 <select id="gestionLogType" required>
-                  ${["Promotion", "Rétrogradation", "Sanction", "Départ", "Médaille"].map(type => `
+                  ${["Promotion", "Rétrogradation", "Sanction", "Départ", "Licenciement", "Blacklist", "Médaille"].map(type => `
                     <option value="${type}">${type}</option>
                   `).join("")}
                 </select>
@@ -528,6 +537,25 @@ function afficherFicheMembreGestion() {
   `;
 }
 
+function formaterDateISOGestion(date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0")
+  ].join("-");
+}
+
+function obtenirDatesDepartGestionParDefaut() {
+  const debut = new Date();
+  debut.setHours(0, 0, 0, 0);
+  const fin = new Date(debut.getTime());
+  fin.setDate(fin.getDate() + 7);
+  return {
+    debut: formaterDateISOGestion(debut),
+    fin: formaterDateISOGestion(fin)
+  };
+}
+
 function afficherChoixGestion() {
   const zone =
     document.getElementById(
@@ -584,17 +612,43 @@ function afficherChoixGestion() {
       )
     );
     libelle = "Médaille à attribuer";
-  } else if (type === "Départ") {
+  } else if (type === "Départ" || type === "Licenciement") {
+    const datesDepart = obtenirDatesDepartGestionParDefaut();
     zone.classList.remove("gestion-cache");
     zone.innerHTML = `
+      <div class="gestion-dates-depart">
+        <label class="gestion-champ">
+          <span>Date de départ</span>
+          <input id="gestionDateDepart" type="date" value="${datesDepart.debut}" required>
+        </label>
+        <label class="gestion-champ">
+          <span>Date de retour</span>
+          <input id="gestionDateRetour" type="date" value="${datesDepart.fin}" required>
+        </label>
+      </div>
       <div class="gestion-alerte-depart">
-        🚪 Le départ sera ajouté automatiquement dans la feuille
+        🚪 Le ${type.toLowerCase()} sera ajouté automatiquement dans la feuille
         <strong>Départ GDA</strong> avec le grade, les identifiants,
-        les médailles et l’auteur de l’enregistrement.
+        les médailles, les dates et l’auteur de l’enregistrement.
       </div>
     `;
+    const champDepart = document.getElementById("gestionDateDepart");
+    const champRetour = document.getElementById("gestionDateRetour");
+    champDepart.addEventListener("change", function() {
+      const debut = new Date(champDepart.value + "T00:00:00");
+      if (Number.isNaN(debut.getTime())) return;
+      debut.setDate(debut.getDate() + 7);
+      champRetour.value = formaterDateISOGestion(debut);
+      champRetour.min = champRetour.value;
+    });
+    champRetour.min = datesDepart.fin;
     valider.disabled = false;
     return;
+  } else if (type === "Blacklist") {
+    valeurs = gestionDureesBlacklist.length
+      ? [...gestionDureesBlacklist]
+      : ["1 semaine", "2 semaines", "3 semaines", "1 mois", "2 mois", "3 mois", "6 mois", "Permanent"];
+    libelle = "Durée de la blacklist";
   }
 
   zone.classList.remove("gestion-cache");
@@ -660,6 +714,10 @@ async function envoyerActionGestion(
     document.getElementById(
       "gestionRaison"
     ).value.trim();
+  const dateDepartElement = document.getElementById("gestionDateDepart");
+  const dateRetourElement = document.getElementById("gestionDateRetour");
+  const dateDepart = dateDepartElement ? dateDepartElement.value : "";
+  const dateRetour = dateRetourElement ? dateRetourElement.value : "";
 
   if (!personne || !type || !raison) {
     window.alert(
@@ -668,11 +726,27 @@ async function envoyerActionGestion(
     return;
   }
 
-  if (type !== "Départ" && !choix) {
+  const estSortieAvecRetour = type === "Départ" || type === "Licenciement";
+
+  if (!estSortieAvecRetour && !choix) {
     window.alert(
       "Sélectionnez une possibilité."
     );
     return;
+  }
+
+  if (estSortieAvecRetour && (!dateDepart || !dateRetour)) {
+    window.alert("La date de départ et la date de retour sont obligatoires.");
+    return;
+  }
+
+  if (estSortieAvecRetour) {
+    const retourMinimum = new Date(dateDepart + "T00:00:00");
+    retourMinimum.setDate(retourMinimum.getDate() + 7);
+    if (dateRetour < formaterDateISOGestion(retourMinimum)) {
+      window.alert("La date de retour doit être située au moins 7 jours après la date de départ.");
+      return;
+    }
   }
 
   const confirmation = window.confirm(
@@ -703,6 +777,10 @@ async function envoyerActionGestion(
       encodeURIComponent(type) +
       "&choix=" +
       encodeURIComponent(choix) +
+      "&dateDepart=" +
+      encodeURIComponent(dateDepart) +
+      "&dateRetour=" +
+      encodeURIComponent(dateRetour) +
       "&raison=" +
       encodeURIComponent(raison);
 
@@ -1042,6 +1120,14 @@ function normaliserTypeHistoriqueGestion(type) {
     return "DEPART";
   }
 
+  if (n.includes("LICENCIEMENT")) {
+    return "LICENCIEMENT";
+  }
+
+  if (n.includes("BLACKLIST") || n.startsWith("BL ")) {
+    return "BLACKLIST";
+  }
+
   if (n.includes("MEDAILLE")) {
     return "MEDAILLE";
   }
@@ -1059,6 +1145,8 @@ function libelleTypeHistoriqueGestion(type) {
   }
   if (n === "SANCTION") return "Sanction";
   if (n === "DEPART") return "Départ";
+  if (n === "LICENCIEMENT") return "Licenciement";
+  if (n === "BLACKLIST") return "Blacklist";
   if (n === "MEDAILLE") return "Médaille";
 
   return String(type || "Non renseigné");

@@ -5,6 +5,7 @@ const EFFECTIF_API_URL = API_URL;
 
 let effectifMembres = [];
 let effectifPeutModifier = false;
+let effectifPeutAjouter = false;
 let effectifGradesEdition = [];
 let effectifMedaillesEdition = [];
 let effectifSpecialisationsEdition = [];
@@ -46,6 +47,7 @@ async function chargerEffectif() {
     const url =
       EFFECTIF_API_URL +
       "?action=recupererEffectif" +
+      "&ajoutDirect=1" +
       "&identifiant=" +
       encodeURIComponent(identifiant);
 
@@ -74,6 +76,8 @@ async function chargerEffectif() {
       : [];
     effectifPeutModifier =
       resultat.peutModifier === true;
+    effectifPeutAjouter =
+      resultat.peutAjouter === true;
     effectifGradesEdition =
       Array.isArray(resultat.grades)
         ? resultat.grades
@@ -154,6 +158,16 @@ function afficherEffectif(membres) {
             <span>/ 35 GDA</span>
           </div>
 
+          ${effectifPeutAjouter ? `
+            <button
+              class="effectif-edit-button"
+              id="effectifAjouter"
+              type="button"
+            >
+              ＋ Ajouter un GDA
+            </button>
+          ` : ""}
+
           <button
             class="effectif-refresh"
             id="effectifRefresh"
@@ -195,6 +209,13 @@ function afficherEffectif(membres) {
   const refreshButton =
     document.getElementById("effectifRefresh");
 
+  const ajouterButton =
+    document.getElementById("effectifAjouter");
+
+  if (ajouterButton) {
+    ajouterButton.addEventListener("click", ouvrirAjoutMembreEffectif);
+  }
+
   if (refreshButton) {
     refreshButton.addEventListener(
       "click",
@@ -233,6 +254,147 @@ function afficherEffectif(membres) {
         }
       });
     });
+}
+
+function ouvrirAjoutMembreEffectif() {
+  if (!effectifPeutAjouter) return;
+
+  const maintenant = new Date();
+  const dateEntree = [
+    String(maintenant.getDate()).padStart(2, "0"),
+    String(maintenant.getMonth() + 1).padStart(2, "0"),
+    maintenant.getFullYear()
+  ].join("/");
+
+  workspace.innerHTML = `
+    <section id="effectifModule">
+      <div class="effectif-header">
+        <div>
+          <h3 class="effectif-header-title">AJOUTER UN NOUVEAU GDA</h3>
+          <p class="effectif-header-subtitle">
+            Création directe d’une nouvelle ligne conforme dans l’effectif
+          </p>
+        </div>
+        <button id="effectifAjoutAnnulerHaut" class="effectif-refresh" type="button">
+          ← Annuler
+        </button>
+      </div>
+
+      <form id="effectifAjoutForm" class="effectif-edition-form">
+        ${creerChampEditionEffectif("Nom / matricule", "nom", "", "text", true)}
+
+        <label class="effectif-edition-champ">
+          <span>Grade</span>
+          <select name="grade" required>
+            <option value="">Sélectionner un grade</option>
+            ${effectifGradesEdition.map(function (grade) {
+              return `<option value="${echapperHTML(grade)}">${echapperHTML(grade)}</option>`;
+            }).join("")}
+          </select>
+        </label>
+
+        ${creerChampEditionEffectif("Steam ID", "steamId", "", "text", true)}
+        ${creerChampEditionEffectif("Discord ID", "discordId", "", "text", true)}
+        ${creerChampEditionEffectif(
+          "Date d’entrée chez les GDA",
+          "dateEntree",
+          dateEntree,
+          "date-fr",
+          true
+        )}
+        ${creerSelecteurMultipleEffectif(
+          "Spécialisation(s)",
+          "specialisation",
+          effectifSpecialisationsEdition,
+          ""
+        )}
+        ${creerSelecteurMultipleEffectif(
+          "Médaille(s)",
+          "medaille",
+          effectifMedaillesEdition,
+          ""
+        )}
+
+        <div class="effectif-edition-actions">
+          <button id="effectifAjoutAnnuler" class="effectif-note-delete" type="button">
+            Annuler
+          </button>
+          <button id="effectifAjoutEnregistrer" class="effectif-refresh" type="submit">
+            Ajouter le nouveau GDA
+          </button>
+        </div>
+        <p id="effectifAjoutMessage" role="status"></p>
+      </form>
+    </section>
+  `;
+
+  const annuler = function () { afficherEffectif(effectifMembres); };
+  document.getElementById("effectifAjoutAnnulerHaut").addEventListener("click", annuler);
+  document.getElementById("effectifAjoutAnnuler").addEventListener("click", annuler);
+  document.getElementById("effectifAjoutForm").addEventListener(
+    "submit",
+    enregistrerAjoutMembreEffectif
+  );
+  initialiserSelecteursMultiplesEffectif();
+}
+
+async function enregistrerAjoutMembreEffectif(event) {
+  event.preventDefault();
+  const formulaire = event.currentTarget;
+  const bouton = document.getElementById("effectifAjoutEnregistrer");
+  const message = document.getElementById("effectifAjoutMessage");
+  const parametres = new URLSearchParams();
+  parametres.set("action", "ajouterMembreEffectif");
+  parametres.set(
+    "identifiant",
+    sessionStorage.getItem("identifiantUtilisateur") || ""
+  );
+
+  try {
+    new FormData(formulaire).forEach(function (valeur, cle) {
+      const texte = String(valeur).trim();
+      parametres.set(
+        cle,
+        cle === "dateEntree"
+          ? convertirDateFrancaiseVersISOEffectif(texte)
+          : texte
+      );
+    });
+  } catch (erreur) {
+    message.className = "effectif-edition-erreur";
+    message.textContent = erreur.message;
+    return;
+  }
+
+  bouton.disabled = true;
+  bouton.textContent = "Ajout en cours...";
+  message.className = "";
+  message.textContent = "Vérification des informations...";
+
+  try {
+    const reponse = await fetch(EFFECTIF_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+      },
+      body: parametres.toString()
+    });
+    const resultat = await reponse.json();
+    if (!resultat.success) {
+      throw new Error(resultat.message || "Impossible d’ajouter ce GDA.");
+    }
+    if (resultat.membre) {
+      effectifMembres.push(resultat.membre);
+    }
+    afficherEffectif(effectifMembres);
+    afficherNotificationGDA(resultat.message || "Nouveau GDA ajouté.", "succes");
+  } catch (erreur) {
+    console.error(erreur);
+    bouton.disabled = false;
+    bouton.textContent = "Ajouter le nouveau GDA";
+    message.className = "effectif-edition-erreur";
+    message.textContent = erreur.message;
+  }
 }
 
 

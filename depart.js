@@ -76,6 +76,7 @@ async function chargerRegistreDeparts() {
     const url =
       DEPART_API_URL +
       "?action=recupererDeparts" +
+      "&horaires=1" +
       "&identifiant=" +
       encodeURIComponent(identifiant);
 

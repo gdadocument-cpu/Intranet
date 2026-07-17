@@ -269,6 +269,13 @@
   line-height: 1.55;
 }
 
+.gestion-dates-depart {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 14px;
+}
+
 .gestion-formulaire-actions {
   display: flex;
   justify-content: flex-end;
@@ -511,6 +518,10 @@
 }
 
 @media (max-width: 850px) {
+  .gestion-dates-depart {
+    grid-template-columns: 1fr;
+  }
+
   .gestion-header,
   .gestion-log header {
     align-items: flex-start;
