@@ -206,4 +206,123 @@
     flex-direction: column;
   }
 }
++
+/* Interface compacte à deux colonnes */
+.liste-blanche-colonnes {
+  display: grid;
+  grid-template-columns: minmax(280px, .72fr) minmax(430px, 1.28fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.liste-blanche-membres,
+.liste-blanche-droite {
+  background: rgba(7, 31, 51, .94);
+  border: 1px solid rgba(79, 181, 238, .25);
+  border-radius: 14px;
+  min-height: 210px;
+  padding: 13px;
+}
+
+.liste-blanche-titre {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.liste-blanche-titre h4,
+.liste-blanche-panneau h4 {
+  margin: 0;
+}
+
+.liste-blanche-titre span {
+  background: rgba(48, 157, 215, .16);
+  border-radius: 999px;
+  color: #8bd8ff;
+  padding: 4px 9px;
+}
+
+.liste-blanche-ligne {
+  align-items: stretch;
+  border: 1px solid rgba(82, 157, 198, .18);
+  border-radius: 10px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 38px;
+  overflow: hidden;
+}
+
+.liste-blanche-ligne + .liste-blanche-ligne {
+  margin-top: 7px;
+}
+
+.liste-blanche-ligne.active {
+  background: rgba(23, 115, 165, .2);
+  border-color: rgba(78, 190, 247, .62);
+}
+
+.liste-blanche-selection,
+.liste-blanche-crayon {
+  background: transparent;
+  border: 0;
+  color: #edf7ff;
+  cursor: pointer;
+}
+
+.liste-blanche-selection {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 10px 11px;
+  text-align: left;
+}
+
+.liste-blanche-selection > span {
+  display: grid;
+  min-width: 0;
+}
+
+.liste-blanche-selection small {
+  color: #87a8bf;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.liste-blanche-crayon {
+  border-left: 1px solid rgba(82, 157, 198, .22);
+  color: #85d8ff;
+  font-size: 19px;
+  transition: background .16s ease, transform .16s ease;
+}
+
+.liste-blanche-crayon:hover {
+  background: rgba(49, 157, 216, .22);
+  transform: scale(1.06);
+}
+
+.liste-blanche-panneau {
+  padding: 2px;
+}
+
+.liste-blanche-panneau .liste-blanche-identite {
+  border-bottom: 1px solid rgba(95, 174, 216, .18);
+  margin-bottom: 12px;
+  padding: 2px 2px 11px;
+}
+
+.liste-blanche-panneau .liste-blanche-permissions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.liste-blanche-champs[hidden] {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .liste-blanche-colonnes {
+    grid-template-columns: 1fr;
+  }
+}
 

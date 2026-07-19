@@ -205,6 +205,7 @@ function creerCarteAdministration(utilisateur) {
   const estOuverte = administrationPersonneOuverte === clePersonne;
   const iconeGrade = obtenirIconeGradeAdministration(utilisateur.grade);
   const accesPermanent = utilisateur.proprietaire || utilisateur.coproprietaire;
+  const estStaff = !accesPermanent && permissions.includes("role_staff_total");
 
   const cases = administrationPermissions.map(function (permission) {
     const cochee = accesPermanent || permissions.includes(permission.cle);
@@ -244,7 +245,9 @@ function creerCarteAdministration(utilisateur) {
           ? '<span class="administration-badge-proprietaire">Propriétaire</span>'
           : utilisateur.coproprietaire
             ? '<span class="administration-badge-proprietaire administration-badge-coproprietaire">Co-propriétaire</span>'
-          : ""}
+          : estStaff
+            ? '<span class="administration-badge-proprietaire administration-badge-staff">Staff</span>'
+            : ""}
         <span class="administration-chevron" aria-hidden="true">⌄</span>
       </button>
 

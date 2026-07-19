@@ -1,5 +1,5 @@
 const API_URL =
-  "https://script.google.com/macros/s/AKfycbxl-j8XfEC6d_LmaspiD3VZSGqqHrgdM2pm36iU0F_t5dtcubjtg3Xo4i7WWKCN34Dl/exec";
+  "https://script.google.com/macros/s/AKfycbwQ1OJoI3wgBkViyxMEMmYC5jbxqfHevWf4cuEnewi5er5pPSWovSJM2UgoddhrB955kA/exec";
 
 const username = document.getElementById("username");
 const loginForm = document.getElementById("login");

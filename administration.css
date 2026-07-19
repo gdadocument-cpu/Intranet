@@ -157,6 +157,12 @@
   color: #8ad8ff;
 }
 
+.administration-badge-staff {
+  background: rgba(179, 103, 255, .14);
+  border-color: rgba(190, 125, 255, .58);
+  color: #d8a9ff;
+}
+
 .administration-chevron {
   color: #75cfff;
   font-size: 25px;
