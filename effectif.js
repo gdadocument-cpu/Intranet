@@ -7,6 +7,7 @@ let effectifMembres = [];
 let effectifPeutModifier = false;
 let effectifPeutAjouter = false;
 let effectifGradesEdition = [];
+let effectifSanctionsEdition = [];
 let effectifMedaillesEdition = [];
 let effectifSpecialisationsEdition = [];
 let effectifCharge = false;
@@ -81,6 +82,10 @@ async function chargerEffectif() {
     effectifGradesEdition =
       Array.isArray(resultat.grades)
         ? resultat.grades
+        : [];
+    effectifSanctionsEdition =
+      Array.isArray(resultat.sanctions)
+        ? resultat.sanctions
         : [];
     effectifMedaillesEdition =
       Array.isArray(resultat.medailles)
@@ -472,24 +477,26 @@ function creerLigneMembre(membre, index) {
       aria-label="Voir la fiche de ${echapperHTML(membre.nom)}"
     >
 
-      <div class="effectif-name">
-        ${echapperHTML(membre.nom || "Sans nom")}
-      </div>
+      <div class="effectif-identite-groupe">
+        <div class="effectif-grade-groupe">
+          <img
+            class="effectif-grade-icone"
+            src="${iconeGrade}"
+            alt="Insigne ${echapperHTML(
+              membre.grade || "grade inconnu"
+            )}"
+            loading="lazy"
+          >
+          <span class="effectif-grade ${classeGrade}">
+            ${echapperHTML(
+              membre.grade || "Grade non renseigné"
+            )}
+          </span>
+        </div>
 
-      <div class="effectif-grade-groupe">
-        <img
-          class="effectif-grade-icone"
-          src="${iconeGrade}"
-          alt="Insigne ${echapperHTML(
-            membre.grade || "grade inconnu"
-          )}"
-          loading="lazy"
-        >
-        <span class="effectif-grade ${classeGrade}">
-          ${echapperHTML(
-            membre.grade || "Grade non renseigné"
-          )}
-        </span>
+        <div class="effectif-name">
+          ${echapperHTML(membre.nom || "Sans nom")}
+        </div>
       </div>
 
       <div class="effectif-badges">
@@ -833,9 +840,10 @@ function ouvrirEditionMembre(membre, index) {
           effectifSpecialisationsEdition,
           membre.specialisation
         )}
-        ${creerZoneEditionEffectif(
-          "Sanction(s)",
+        ${creerSelecteurUniqueEffectif(
+          "Sanction",
           "sanction",
+          effectifSanctionsEdition,
           membre.sanction
         )}
         ${creerSelecteurMultipleEffectif(
@@ -925,6 +933,45 @@ function creerChampEditionEffectif(
           : ""}
         ${requis ? "required" : ""}
       >
+    </label>
+  `;
+}
+
+function creerSelecteurUniqueEffectif(label, nom, choix, valeurActuelle) {
+  const valeur = String(valeurActuelle || "").trim();
+  const liste = Array.isArray(choix) ? choix.slice() : [];
+  const valeurNormalisee = normaliserTexteEffectif(valeur);
+  const equivautAucuneSanction =
+    !valeurNormalisee ||
+    valeurNormalisee === "CLEAN" ||
+    valeurNormalisee === "N/A" ||
+    valeurNormalisee === "NA" ||
+    valeurNormalisee === "AUCUNE" ||
+    valeurNormalisee === "AUCUNE SANCTION" ||
+    valeurNormalisee === "NON RENSEIGNE";
+  const valeurConnue = equivautAucuneSanction || liste.some(function (option) {
+    return normaliserTexteEffectif(option) === normaliserTexteEffectif(valeur);
+  });
+
+  return `
+    <label class="effectif-edition-champ">
+      <span>${echapperHTML(label)}</span>
+      <select name="${echapperHTML(nom)}">
+        <option value=""${equivautAucuneSanction ? " selected" : ""}>Aucune sanction</option>
+        ${!valeurConnue && valeur
+          ? `<option value="" selected>Anciennes sanctions multiples — choisissez une valeur</option>`
+          : ""}
+        ${liste.map(function (option) {
+          const selectionnee =
+            !equivautAucuneSanction &&
+            normaliserTexteEffectif(option) === valeurNormalisee;
+          return `
+            <option value="${echapperHTML(option)}"${selectionnee ? " selected" : ""}>
+              ${echapperHTML(option)}
+            </option>
+          `;
+        }).join("")}
+      </select>
     </label>
   `;
 }

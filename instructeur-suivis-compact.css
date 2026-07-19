@@ -331,8 +331,27 @@
   align-items: center;
   display: grid;
   gap: 6px;
-  grid-template-columns: 27px 1fr 27px;
+  grid-template-columns: 1fr;
   text-align: center;
+}
+
+.post-it-instructeur-services input {
+  background: rgba(255, 252, 224, .88);
+  border: 1px solid rgba(86, 62, 5, .35);
+  border-radius: 8px;
+  box-sizing: border-box;
+  color: #302406;
+  font-size: 20px;
+  font-weight: 800;
+  height: 34px;
+  outline: none;
+  text-align: center;
+  width: 100%;
+}
+
+.post-it-instructeur-services input:focus {
+  border-color: rgba(76, 53, 0, .75);
+  box-shadow: 0 0 0 3px rgba(98, 71, 7, .13);
 }
 
 .post-it-instructeur-services button {

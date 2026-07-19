@@ -8,6 +8,13 @@ listeBlancheButton?.addEventListener("click", chargerListeBlancheGDA);
 
 function utilisateurPeutGererListeBlancheGDA() {
   return sessionStorage.getItem("proprietaireUtilisateur") === "true" ||
+    sessionStorage.getItem("coproprietaireUtilisateur") === "true" ||
+    (typeof utilisateurAPermission === "function" &&
+      utilisateurAPermission("role_staff_total"));
+}
+
+function utilisateurPeutSupprimerListeBlancheGDA() {
+  return sessionStorage.getItem("proprietaireUtilisateur") === "true" ||
     sessionStorage.getItem("coproprietaireUtilisateur") === "true";
 }
 
@@ -38,7 +45,7 @@ async function chargerListeBlancheGDA() {
     listeBlanchePersonnes = Array.isArray(resultat.personnes) ? resultat.personnes : [];
     listeBlanchePermissions = Array.isArray(resultat.permissions) ? resultat.permissions : [];
     if (!listeBlanchePersonnes.some(p => p.id === listeBlancheSelectionId)) {
-      listeBlancheSelectionId = listeBlanchePersonnes[0]?.id || "";
+      listeBlancheSelectionId = "";
       listeBlancheModeEdition = false;
     }
     afficherListeBlancheGDA();
@@ -100,6 +107,7 @@ function creerPanneauListeBlancheGDA() {
       <span>${echapperListeBlancheGDA(permission.libelle)}</span>
     </label>`;
   }).join("");
+  const peutSupprimer = utilisateurPeutSupprimerListeBlancheGDA();
   return `<article class="liste-blanche-panneau" data-liste-blanche-id="${echapperListeBlancheGDA(personne.id)}">
     <div class="liste-blanche-identite">
       <div><strong>${echapperListeBlancheGDA(personne.identifiant)}</strong><span>Compte extérieur</span></div>
@@ -114,7 +122,8 @@ function creerPanneauListeBlancheGDA() {
     <div class="liste-blanche-actions">
       <span class="liste-blanche-retour" aria-live="polite"></span>
       <button type="button" data-liste-blanche-enregistrer>Enregistrer</button>
-      ${listeBlancheModeEdition ? '<button type="button" data-liste-blanche-annuler>Annuler</button><button type="button" class="danger" data-liste-blanche-supprimer>Supprimer</button>' : ""}
+      ${listeBlancheModeEdition ? '<button type="button" data-liste-blanche-annuler>Annuler</button>' +
+        (peutSupprimer ? '<button type="button" class="danger" data-liste-blanche-supprimer>Supprimer</button>' : "") : ""}
     </div>
   </article>`;
 }
@@ -214,4 +223,3 @@ function echapperListeBlancheGDA(valeur) {
   return String(valeur == null ? "" : valeur).replace(/&/g, "&amp;").replace(/</g, "&lt;")
     .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
-

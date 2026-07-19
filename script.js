@@ -756,6 +756,10 @@ function terminerConnexionDiscord(resultat, identifiant) {
   sessionStorage.setItem("nomUtilisateur", nom);
   sessionStorage.setItem("gradeUtilisateur", resultat.grade || "");
   sessionStorage.setItem(
+    "gradeEffectifPublicUtilisateur",
+    resultat.gradeAffiche || resultat.grade || ""
+  );
+  sessionStorage.setItem(
     "specialisationUtilisateur",
     resultat.specialisation || ""
   );
@@ -958,7 +962,9 @@ function afficherUtilisateur() {
     sessionStorage.getItem("nomUtilisateur") || "Utilisateur";
 
   const grade =
-    sessionStorage.getItem("gradeUtilisateur") || "Grade inconnu";
+    sessionStorage.getItem("gradeEffectifPublicUtilisateur") ||
+    sessionStorage.getItem("gradeUtilisateur") ||
+    "Grade inconnu";
 
   let blocUtilisateur =
     document.getElementById("userInfo");
@@ -1268,7 +1274,8 @@ function appliquerVisibiliteModulesGDA() {
   if (listeBlanche) {
     listeBlanche.hidden =
       !menuAdministrationOuvert ||
-      !utilisateurEstProprietaireOuCoproprietaireReelGDA();
+      !(utilisateurEstProprietaireOuCoproprietaireReelGDA() ||
+        utilisateurAPermission("role_staff_total"));
   }
   if (retourAdministration) {
     retourAdministration.hidden = !menuAdministrationOuvert;

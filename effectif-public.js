@@ -61,6 +61,7 @@ async function chargerEffectifPublicGDA(forcer, silencieux) {
     effectifPublicDernierResultat = Object.assign({}, resultat, {
       membres: effectifPublicMembres
     });
+    synchroniserGradeAfficheAvecEffectifPublic();
     if (moduleGdaEstActif("effectif-public")) {
       afficherEffectifPublicGDA(effectifPublicDernierResultat);
     }
@@ -99,6 +100,28 @@ async function chargerEffectifPublicGDA(forcer, silencieux) {
       moduleActuel.classList.remove("effectif-public-chargement");
     }
   }
+}
+
+function synchroniserGradeAfficheAvecEffectifPublic() {
+  const identifiant = normaliserEffectifPublic(
+    sessionStorage.getItem("nomUtilisateur") ||
+    sessionStorage.getItem("identifiantUtilisateur") ||
+    ""
+  );
+  if (!identifiant) return;
+
+  const membre = effectifPublicMembres.find(function (element) {
+    return normaliserEffectifPublic(
+      element && (element.nom || element.matricule)
+    ) === identifiant;
+  });
+  if (!membre || !String(membre.grade || "").trim()) return;
+
+  sessionStorage.setItem(
+    "gradeEffectifPublicUtilisateur",
+    String(membre.grade).trim()
+  );
+  if (typeof afficherUtilisateur === "function") afficherUtilisateur();
 }
 
 function afficherEffectifPublicGDA(resultat) {

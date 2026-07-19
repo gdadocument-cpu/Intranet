@@ -211,9 +211,9 @@ function creerPostItInstructeurGDA(suivi) {
       <div class="post-it-instructeur-services">
         <small>Vu en service</small>
         <span>
-          <button type="button" data-post-it-service="-1" aria-label="Retirer une prise de service">−</button>
-          <b data-post-it-services>${Number(suivi.prisesService || 0)}</b>
-          <button type="button" data-post-it-service="1" aria-label="Ajouter une prise de service">＋</button>
+          <input type="number" min="0" max="999" step="1" inputmode="numeric"
+            data-post-it-services value="${Number(suivi.prisesService || 0)}"
+            aria-label="Nombre de prises de service">
         </span>
       </div>
     </div>
@@ -230,47 +230,29 @@ function creerPostItInstructeurGDA(suivi) {
 
 function installerPostItsInstructeurGDA() {
   document.querySelectorAll("[data-post-it-suivi]").forEach(function (postIt) {
-    postIt.querySelectorAll("[data-post-it-service]").forEach(function (bouton) {
-      bouton.addEventListener("click", async function () {
-        const boutons = postIt.querySelectorAll("[data-post-it-service]");
-        boutons.forEach(function (element) { element.disabled = true; });
-        try {
-          const resultat = await requeteRapportInstructeur(
-            "mettreAJourMonSuiviInstructeur",
-            {
-              suiviId: postIt.dataset.postItSuivi,
-              variationService: bouton.dataset.postItService
-            },
-            "POST"
-          );
-          postIt.querySelector("[data-post-it-services]").textContent =
-            Number(resultat.suivi.prisesService || 0);
-          modifierCachePostItInstructeurGDA(postIt.dataset.postItSuivi, {
-            prisesService: Number(resultat.suivi.prisesService || 0)
-          });
-          afficherRetourPostItInstructeurGDA(postIt, "Compteur enregistré.", false);
-        } catch (erreur) {
-          afficherRetourPostItInstructeurGDA(postIt, erreur.message || "Échec de l’enregistrement.", true);
-        } finally {
-          boutons.forEach(function (element) { element.disabled = false; });
-        }
-      });
-    });
     postIt.querySelector("[data-post-it-enregistrer]")?.addEventListener("click", async function () {
       const bouton = this;
       const commentaire = postIt.querySelector("[data-post-it-commentaire]").value;
+      const champServices = postIt.querySelector("[data-post-it-services]");
+      const prisesService = Math.max(0, Math.min(999, Math.trunc(Number(champServices.value) || 0)));
+      champServices.value = String(prisesService);
       bouton.disabled = true;
       bouton.textContent = "Enregistrement…";
       try {
         await requeteRapportInstructeur(
           "mettreAJourMonSuiviInstructeur",
-          { suiviId: postIt.dataset.postItSuivi, commentaire: commentaire },
+          {
+            suiviId: postIt.dataset.postItSuivi,
+            commentaire: commentaire,
+            prisesService: prisesService
+          },
           "POST"
         );
         modifierCachePostItInstructeurGDA(postIt.dataset.postItSuivi, {
-          commentaire: commentaire
+          commentaire: commentaire,
+          prisesService: prisesService
         });
-        afficherRetourPostItInstructeurGDA(postIt, "Commentaire enregistré.", false);
+        afficherRetourPostItInstructeurGDA(postIt, "Suivi enregistré.", false);
       } catch (erreur) {
         afficherRetourPostItInstructeurGDA(postIt, erreur.message || "Échec de l’enregistrement.", true);
       } finally {
