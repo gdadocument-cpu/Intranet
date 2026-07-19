@@ -266,7 +266,10 @@ const INVALIDATIONS_CACHE_GDA = {
   transfererGeranceSuiviFormationInstructeur: ["recupererSuivisFormationInstructeur", "recupererMesSuivisInstructeur"],
   deciderSuiviFormationInstructeur: ["recupererSuivisFormationInstructeur", "recupererMesSuivisInstructeur", "recupererArchivesInstructeur", "recupererEffectif", "recupererEffectifPublic", "recupererGestionPersonnel", "recupererAdministration", "recupererDeparts"],
   mettreAJourMonSuiviInstructeur: ["recupererSuivisFormationInstructeur", "recupererMesSuivisInstructeur"],
-  supprimerArchiveInstructeur: ["recupererArchivesInstructeur"]
+  supprimerArchiveInstructeur: ["recupererArchivesInstructeur"],
+  ajouterListeBlanche: ["recupererAdministration"],
+  modifierListeBlanche: ["recupererAdministration"],
+  supprimerListeBlanche: ["recupererAdministration"]
 };
 
 function reconstruireReponseGDA(entree) {
@@ -1014,6 +1017,7 @@ function utilisateurAPermission(permission) {
 
 
 function utilisateurEstOfficierGDA() {
+  if (utilisateurAPermission("role_staff_total")) return true;
   const grade = String(sessionStorage.getItem("gradeUtilisateur") || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -1032,6 +1036,7 @@ function utilisateurEstOfficierGDA() {
 }
 
 function utilisateurEstOfficierSuperieurGDA() {
+  if (utilisateurAPermission("role_staff_total")) return true;
   const grade = String(sessionStorage.getItem("gradeUtilisateur") || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -1041,6 +1046,12 @@ function utilisateurEstOfficierSuperieurGDA() {
 }
 
 function utilisateurEstProprietaireOuCoproprietaireGDA() {
+  return sessionStorage.getItem("proprietaireUtilisateur") === "true" ||
+    sessionStorage.getItem("coproprietaireUtilisateur") === "true" ||
+    utilisateurAPermission("role_staff_total");
+}
+
+function utilisateurEstProprietaireOuCoproprietaireReelGDA() {
   return sessionStorage.getItem("proprietaireUtilisateur") === "true" ||
     sessionStorage.getItem("coproprietaireUtilisateur") === "true";
 }
@@ -1137,8 +1148,7 @@ function appliquerVisibiliteModulesGDA() {
   if (menuInstructeurOuvert && !accesEspaceInstructeur) {
     menuInstructeurOuvert = false;
   }
-  const accesStaffAdministration =
-    officier && utilisateurAPermission("administration_staff");
+  const accesStaffAdministration = utilisateurAPermission("administration_staff");
   if (menuAdministrationOuvert && !accesStaffAdministration) {
     menuAdministrationOuvert = false;
   }
@@ -1237,6 +1247,7 @@ function appliquerVisibiliteModulesGDA() {
   const administration = document.getElementById("administrationButton");
   const permissions = document.getElementById("permissionsButton");
   const logs = document.getElementById("logsButton");
+  const listeBlanche = document.getElementById("listeBlancheButton");
   const retourAdministration = document.getElementById("retourAdministrationButton");
   if (administration) {
     administration.hidden =
@@ -1253,6 +1264,11 @@ function appliquerVisibiliteModulesGDA() {
       !menuAdministrationOuvert ||
       !accesStaffAdministration ||
       !utilisateurAPermission("administration_logs");
+  }
+  if (listeBlanche) {
+    listeBlanche.hidden =
+      !menuAdministrationOuvert ||
+      !utilisateurEstProprietaireOuCoproprietaireReelGDA();
   }
   if (retourAdministration) {
     retourAdministration.hidden = !menuAdministrationOuvert;
@@ -1280,7 +1296,6 @@ function appliquerVisibiliteModulesGDA() {
 
 function ouvrirMenuAdministrationGDA() {
   if (
-    !utilisateurEstOfficierGDA() ||
     !utilisateurAPermission("administration_staff")
   ) return;
 
@@ -1299,6 +1314,9 @@ function ouvrirMenuAdministrationGDA() {
   }
   if (utilisateurAPermission("administration_logs")) {
     modules.push("Logs");
+  }
+  if (utilisateurEstProprietaireOuCoproprietaireReelGDA()) {
+    modules.push("Liste blanche");
   }
   afficherAccueilMenuGDA(
     "Administration",

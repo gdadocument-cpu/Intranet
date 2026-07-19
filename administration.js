@@ -258,7 +258,7 @@ function creerCarteAdministration(utilisateur) {
             : `<button type="button" data-enregistrer-permissions="${index}">Enregistrer</button>`}
         </div>
 
-        ${administrationAuteurProprietaire && !utilisateur.proprietaire
+        ${administrationAuteurProprietaire && !utilisateur.proprietaire && !utilisateur.externe
           ? `
             <div class="administration-actions-propriete">
               <button
