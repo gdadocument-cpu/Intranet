@@ -176,18 +176,6 @@ async function ouvrirFormulaireRapportFormationInstructeur() {
   definirModuleGdaActif("instructeur-rapport-formation");
   const workspace = document.getElementById("workspace");
   if (!workspace) return;
-  const suivisEnCache = typeof lireCacheSuivisFormationInstructeur === "function"
-    ? lireCacheSuivisFormationInstructeur()
-    : null;
-  if (suivisEnCache) {
-    candidatsFormationInstructeur = (Array.isArray(suivisEnCache.nouveauxArrivants)
-      ? suivisEnCache.nouveauxArrivants
-      : []).filter(function (personne) {
-        return personne.formationEffectuee !== true;
-      });
-    afficherFormulaireRapportFormationInstructeur();
-    return;
-  }
   workspace.innerHTML = `
     <section class="rapports-instructeur-module">
       ${creerRetourRapportsInstructeur()}
@@ -197,16 +185,14 @@ async function ouvrirFormulaireRapportFormationInstructeur() {
   installerRetourRapportsInstructeur();
   try {
     const resultat = await requeteRapportInstructeur(
-      "recupererSuivisFormationInstructeur",
+      "recupererCandidatsRapportFormationInstructeur",
       {},
       "GET"
     );
     if (!moduleGdaEstActif("instructeur-rapport-formation")) return;
-    candidatsFormationInstructeur = (Array.isArray(resultat.nouveauxArrivants)
-      ? resultat.nouveauxArrivants
-      : []).filter(function (personne) {
-        return personne.formationEffectuee !== true;
-      });
+    candidatsFormationInstructeur = Array.isArray(resultat.candidats)
+      ? resultat.candidats
+      : [];
     afficherFormulaireRapportFormationInstructeur();
   } catch (erreur) {
     if (!moduleGdaEstActif("instructeur-rapport-formation")) return;
