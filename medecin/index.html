@@ -1,0 +1,4593 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MDC — Espace intégré GDA</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg-void: #0a0d12;
+    --bg-panel: #12161d;
+    --bg-panel-raised: #171c25;
+    --line: #232935;
+    --line-bright: #333c4d;
+    --red: #c23b3b;
+    --red-glow: #e0524f;
+    --green: #4a9d6f;
+    --blue: #2f5fa8;
+    --blue-glow: #5b9bf0;
+    --text-primary: #e8ebf0;
+    --text-dim: #7a8494;
+    --text-faint: #4a5262;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg-void);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  /* Animations courtes : l'interface parait reactive sans alourdir la page. */
+  .rapport-mdc-wrap { animation: apparitionDouce .18s ease-out both; }
+  .rapport-mdc-card, .rapport-validation-item { transition: border-color .16s ease, background .16s ease, transform .16s ease; }
+  .rapport-validation-item:hover { border-color: rgba(93, 201, 247, .45); background: rgba(13, 61, 90, .18); }
+  .rapport-validation-btn { transition: transform .12s ease, filter .12s ease, background .12s ease; }
+  .rapport-validation-btn:active { transform: scale(.97); }
+  .rapport-validation-btn:disabled { opacity: .65; cursor: wait; }
+  @keyframes apparitionDouce { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    body { background-attachment: scroll; }
+  }
+
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px;
+    position: relative;
+
+    /* Fond d'écran MDC */
+    background-image: url("image/fond d'écrant mdc.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+  }
+
+  /* Ambient grid backdrop */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.15;
+    mask-image: radial-gradient(ellipse 60% 50% at 50% 40%, black, transparent);
+    pointer-events: none;
+  }
+
+  .side-img {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    width: 26vw;
+    max-width: 420px;
+    background-size: cover;
+    background-position: center;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .side-img.left {
+    left: 0;
+    background-image: url("image/agent-gda-1.png");
+    mask-image: linear-gradient(90deg, black 40%, transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, black 40%, transparent 100%);
+  }
+  .side-img.right {
+    right: 0;
+    background-image: url("image/agent-gda-2.png");
+    mask-image: linear-gradient(270deg, black 40%, transparent 100%);
+    -webkit-mask-image: linear-gradient(270deg, black 40%, transparent 100%);
+  }
+
+  .console {
+    width: 100%;
+    max-width: 460px;
+    position: relative;
+    z-index: 1;
+    transition: max-width 0.4s ease;
+  }
+  .console.expanded {
+    max-width: 1400px;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 28px;
+    text-align: center;
+  }
+
+  .crest {
+    width: 180px;
+    height: 180px;
+    flex-shrink: 0;
+    position: relative;
+    perspective: 400px;
+    margin-bottom: 14px;
+  }
+  .crest::before {
+    content: '';
+    position: absolute;
+    inset: -30px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(224, 82, 79, 0.35) 0%, transparent 70%);
+    filter: blur(6px);
+    z-index: 0;
+  }
+  .coin {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    animation: spinY 6s linear infinite;
+    z-index: 1;
+  }
+  .coin-layer {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    overflow: hidden;
+  }
+  .coin-layer img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+  }
+  .coin-front img {
+    filter: drop-shadow(0 0 18px rgba(224, 82, 79, 0.5));
+  }
+  @keyframes spinY {
+    from { transform: rotateY(0deg); }
+    to { transform: rotateY(360deg); }
+  }
+
+  .header-text .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.18em;
+    color: var(--red-glow);
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .header-text h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-top: 4px;
+  }
+
+  /* Panel */
+  .panel {
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    overflow: hidden;
+    backdrop-filter: none;
+  }
+
+  .panel-strip {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--red), transparent);
+    opacity: 0.6;
+  }
+
+  .panel-body { padding: 32px 28px; }
+
+  .field-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 10px;
+  }
+
+  .input-scan {
+    position: relative;
+    flex: 1;
+  }
+
+  #matricule, #discordIdVerif {
+    width: 100%;
+    background: var(--bg-void);
+    border: 1px solid var(--line-bright);
+    border-radius: 3px;
+    padding: 14px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  #matricule::placeholder, #discordIdVerif::placeholder { color: var(--text-faint); letter-spacing: normal; font-weight: 400; }
+  #matricule:focus, #discordIdVerif:focus {
+    border-color: var(--red);
+    box-shadow: 0 0 0 3px rgba(194, 59, 59, 0.12);
+  }
+
+  .btn-verify {
+    background: var(--bg-panel-raised);
+    border: 1px solid var(--line-bright);
+    border-radius: 3px;
+    padding: 0 20px;
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+  .btn-verify:hover:not(:disabled) { border-color: var(--red); color: var(--red-glow); }
+  .btn-verify:active:not(:disabled) { transform: scale(0.97); }
+  .btn-verify:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Status area */
+  .big-status {
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 34px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin: 18px 0 4px;
+    opacity: 0;
+    transform: scale(0.9);
+    animation: bigStatusIn 0.4s ease forwards;
+  }
+  .big-status.ok { color: var(--green); text-shadow: 0 0 24px rgba(74, 157, 111, 0.6); }
+  .big-status.fail { color: var(--red-glow); text-shadow: 0 0 24px rgba(224, 82, 79, 0.6); }
+  @keyframes bigStatusIn { to { opacity: 1; transform: scale(1); } }
+
+  .status-zone {
+    margin-top: 20px;
+    min-height: 0;
+    overflow: hidden;
+    transition: min-height 0.35s ease;
+  }
+  .status-zone.active { min-height: 64px; }
+
+  .status-line {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 12px 14px;
+    border-radius: 3px;
+    border: 1px solid var(--line);
+    background: var(--bg-void);
+    opacity: 0;
+    transform: translateY(-4px);
+    animation: statusIn 0.3s ease forwards;
+  }
+  @keyframes statusIn { to { opacity: 1; transform: translateY(0); } }
+
+  .status-line.scanning { color: var(--text-dim); }
+  .status-line.ok { color: var(--green); border-color: rgba(74, 157, 111, 0.35); }
+  .status-line.fail { color: var(--red-glow); border-color: rgba(194, 59, 59, 0.35); }
+
+  .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .dot.scanning { background: var(--text-dim); animation: pulse 1s ease-in-out infinite; }
+  .dot.ok { background: var(--green); }
+  .dot.fail { background: var(--red-glow); }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  .scan-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .scan-percent {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    min-width: 34px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .scan-bar {
+    flex: 1;
+    height: 2px;
+    background: var(--bg-void);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .scan-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--red-glow);
+    border-radius: 2px;
+  }
+  /* Le remplissage de la barre est piloté en JS pour rester synchronisé avec le %. */
+
+  /* Result / action zone */
+  .action-zone {
+    margin-top: 18px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease;
+  }
+  .action-zone.open { max-height: 900px; }
+
+  /* Une fois connecté (mode-boutons actif), le contenu peut dépasser 900px
+     (Administration > Permission, formulaires longs, etc.) — on ne le limite
+     donc plus, sinon il est coupé sans pouvoir défiler. Les 900px ne servent
+     qu'à l'animation d'ouverture juste après la connexion. */
+  body.mode-boutons .action-zone,
+  body.mode-boutons .action-zone.open {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .id-card {
+    background: var(--bg-panel-raised);
+    border: 1px solid rgba(74, 157, 111, 0.3);
+    border-radius: 3px;
+    padding: 16px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  .action-zone.open .id-card { animation: statusIn 0.4s ease 0.1s forwards; }
+
+  .id-card-info .id-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .id-card-info .id-sub {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  .btn-access {
+    background: var(--green);
+    color: #0a0d12;
+    border: none;
+    border-radius: 3px;
+    padding: 11px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: filter 0.15s ease, transform 0.1s ease;
+  }
+  .btn-access:hover { filter: brightness(1.12); }
+  .btn-access:active { transform: scale(0.96); }
+
+  .btn-site-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    background: var(--green);
+    color: #0a0d12;
+    text-decoration: none;
+    border-radius: 3px;
+    padding: 14px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: filter 0.15s ease, transform 0.1s ease;
+  }
+  .btn-site-link:hover { filter: brightness(1.12); }
+  .btn-site-link:active { transform: scale(0.97); }
+
+  .docs-panel {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--line-bright);
+  }
+  .docs-panel .docs-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+  .doc-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--bg-panel-raised);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 13px;
+    transition: border-color 0.15s ease;
+  }
+  .doc-link:hover { border-color: var(--red); color: var(--red-glow); }
+  .doc-link .arrow { color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+
+  .menu-boutons {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 60px 40px;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  .btn-lien-mdc {
+    background: rgba(20, 40, 74, 0.92);
+    border: 1px solid var(--blue);
+    border-radius: 4px;
+    padding: 22px 24px;
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .btn-lien-mdc:hover { border-color: var(--blue-glow); color: var(--blue-glow); box-shadow: 0 0 0 3px rgba(91, 155, 240, 0.18); }
+  .btn-lien-mdc:active { transform: scale(0.98); }
+
+  /* Mode "menu de boutons" (Milo / Foxtrot / Beta / Echo) :
+     boutons fixés en haut à gauche, les boutons restent visibles
+     même après avoir ouvert un lien. */
+  body.mode-boutons .menu-boutons {
+    position: fixed;
+    top: 50%;
+    left: 24px;
+    transform: translateY(-50%);
+    padding: 0;
+    margin: 0;
+    max-width: 260px;
+    z-index: 30;
+  }
+  body.mode-boutons #contenuLienMDC { margin-left: 300px; width: calc(100% - 300px); margin-top:140px; }
+
+  @media (max-width: 900px) {
+body.mode-boutons .menu-boutons {
+  position: static;
+  top: auto;
+  left: auto;
+  transform: none;
+  width: 100%;
+  max-width: 100%;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+  z-index: auto;
+  margin: 16px 0;
+}
+    body.mode-boutons .btn-lien-mdc {
+      flex: 1 1 calc(50% - 4px);
+      padding: 14px 10px;
+      font-size: 11.5px;
+      text-align: center;
+    }
+    body.mode-boutons #contenuLienMDC {
+      margin-left: 0;
+      width: 100%;
+      margin-top: 0;
+    }
+    .admin-topbar-fixe {
+      position: static;
+      transform: none;
+      width: 100%;
+      flex-wrap: wrap;
+      margin: 0 0 14px 0;
+    }
+    body.mode-admin .console { margin-top: 0; }
+    .console.expanded { max-width: 100%; }
+  }
+
+  /* Le logo animé ne descend en bas à droite qu'une fois qu'un lien a été ouvert. */
+body.lien-ouvert .header {
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    margin: 0;
+    z-index: 5;
+    pointer-events: none;
+}
+  body.lien-ouvert .crest {
+    width: 90px;
+    height: 90px;
+    margin-bottom: 8px;
+  }
+  body.lien-ouvert .header-text .eyebrow { font-size: 9px; }
+  body.lien-ouvert .header-text h1 { font-size: 14px; }
+
+  .iframe-wrap {
+    width: 100%;
+    height: 88vh;
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid var(--line-bright);
+  }
+  .iframe-wrap iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+  }
+  .badge-corner {
+  padding: 8px 12px;
+}
+.badge-corner .grade-insigne {
+  height: 40px;
+}
+.badge-corner .badge-insigne {
+  margin-top: 6px;
+}
+body.lien-ouvert .header {
+  display: none;
+}
+  /* === Salon Rapport MDC GDA === */
+  .rapport-mdc-wrap {
+    width: 100%;
+    min-height: 620px;
+    padding: 26px;
+    border: 1px solid rgba(88, 175, 224, 0.35);
+    border-radius: 16px;
+    background:
+      radial-gradient(circle at 88% 5%, rgba(46, 132, 173, 0.25), transparent 28%),
+      linear-gradient(145deg, #0c1d32, #071321 68%);
+    box-shadow: 0 24px 55px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+  .rapport-mdc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 19px 21px;
+    border: 1px solid rgba(74, 178, 224, 0.36);
+    border-radius: 13px;
+    background: rgba(4, 20, 35, 0.62);
+  }
+  .rapport-mdc-kicker { font: 700 10px 'JetBrains Mono', monospace; letter-spacing: .16em; color: #70c9f5; text-transform: uppercase; }
+  .rapport-mdc-header h2 { margin-top: 4px; font-size: 25px; letter-spacing: -.03em; }
+  .rapport-mdc-subtitle { margin-top: 4px; color: #8faec4; font-size: 12px; }
+  .rapport-mdc-stats { display: flex; gap: 9px; }
+  .rapport-stat { min-width: 76px; padding: 9px 12px; border: 1px solid rgba(94, 185, 229, 0.3); border-radius: 9px; background: rgba(17, 50, 75, 0.45); text-align: center; }
+  .rapport-stat strong { display: block; font: 800 19px 'JetBrains Mono', monospace; color: #d9f3ff; }
+  .rapport-stat span { display: block; margin-top: 2px; font: 700 8px 'JetBrains Mono', monospace; letter-spacing: .08em; color: #78a9c7; text-transform: uppercase; }
+  .rapport-mdc-grid { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(300px, .88fr); gap: 18px; margin-top: 18px; }
+  .rapport-mdc-card { border: 1px solid rgba(73, 153, 202, 0.3); border-radius: 13px; background: rgba(5, 21, 35, 0.64); overflow: hidden; }
+  .rapport-mdc-card-head { padding: 16px 19px; border-bottom: 1px solid rgba(73, 153, 202, 0.22); background: rgba(10, 38, 60, 0.45); }
+  .rapport-mdc-card-head span { font: 700 9px 'JetBrains Mono', monospace; letter-spacing: .13em; color: #76c8f5; text-transform: uppercase; }
+  .rapport-mdc-card-head h3 { margin-top: 4px; font-size: 16px; }
+  .rapport-mdc-form { padding: 18px; }
+  .rapport-identite { display: flex; align-items: center; gap: 12px; padding: 13px; margin-bottom: 17px; border: 1px solid rgba(85, 180, 227, 0.28); border-radius: 10px; background: linear-gradient(90deg, rgba(13, 61, 90, 0.62), rgba(10, 33, 52, 0.62)); }
+  .rapport-identite-icon { width: 39px; height: 39px; display: grid; place-items: center; border-radius: 10px; background: #125188; border: 1px solid #3184bd; font: 800 16px 'JetBrains Mono', monospace; color: #dff5ff; }
+  .rapport-identite strong { display: block; font: 700 14px 'JetBrains Mono', monospace; color: #f0f8ff; }
+  .rapport-identite span { display: block; margin-top: 3px; color: #a5cee5; font-size: 11px; }
+  .rapport-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .rapport-field { display: flex; flex-direction: column; gap: 7px; }
+  .rapport-field.full { grid-column: 1 / -1; }
+  .rapport-field label { font: 700 10px 'JetBrains Mono', monospace; letter-spacing: .08em; color: #a9d7ef; text-transform: uppercase; }
+  .rapport-field input, .rapport-field textarea { width: 100%; border: 1px solid rgba(111, 181, 211, 0.35); border-radius: 8px; background: rgba(1, 13, 23, 0.72); padding: 11px 12px; color: #edf8ff; font: 13px 'Inter', sans-serif; outline: none; transition: border-color .16s ease, box-shadow .16s ease; }
+  .rapport-field input { font: 700 18px 'JetBrains Mono', monospace; }
+  .rapport-field textarea { min-height: 123px; resize: vertical; line-height: 1.45; }
+  .rapport-field input:focus, .rapport-field textarea:focus { border-color: #5dc9f7; box-shadow: 0 0 0 3px rgba(93, 201, 247, .12); }
+  .rapport-submit { width: 100%; margin-top: 16px; border: 1px solid #45b5e4; border-radius: 8px; padding: 12px 15px; background: linear-gradient(135deg, #1982ba, #13518e); color: #fff; font: 800 12px 'JetBrains Mono', monospace; letter-spacing: .06em; text-transform: uppercase; cursor: pointer; box-shadow: 0 8px 18px rgba(17, 111, 169, .28); transition: transform .16s ease, filter .16s ease; }
+  .rapport-submit:hover { filter: brightness(1.14); transform: translateY(-1px); }
+  .rapport-submit:disabled { opacity: .6; cursor: wait; transform: none; }
+  .rapport-feedback { min-height: 16px; margin-top: 10px; font: 11px 'JetBrains Mono', monospace; color: #8db5ca; }
+  .rapport-feedback.ok { color: #76e3b2; }.rapport-feedback.fail { color: #ff9d99; }
+  .rapport-history { max-height: 430px; overflow-y: auto; padding: 5px 16px 16px; }
+  .rapport-history-empty { padding: 74px 18px; text-align: center; color: #7da0b5; font-size: 12px; }
+  .rapport-history-empty .empty-icon { display: block; margin-bottom: 10px; font-size: 31px; }
+  .rapport-history-item { position: relative; padding: 15px 0 15px 17px; border-bottom: 1px solid rgba(99, 166, 195, .16); }
+  .rapport-history-item::before { content: ''; position: absolute; left: 0; top: 20px; width: 7px; height: 7px; border-radius: 50%; background: #5bc4ee; box-shadow: 0 0 10px #5bc4ee; }
+  .rapport-history-top { display: flex; justify-content: space-between; gap: 8px; color: #a4c9dd; font: 10px 'JetBrains Mono', monospace; }
+  .rapport-history-values { display: flex; gap: 7px; margin-top: 8px; }
+  .rapport-history-values span { padding: 4px 7px; border-radius: 5px; background: rgba(36, 116, 156, .28); color: #cceeff; font: 700 10px 'JetBrains Mono', monospace; }
+  .rapport-history-comment { margin-top: 8px; color: #e2f0f7; font-size: 12px; line-height: 1.45; white-space: pre-wrap; }
+  .rapport-history-sync { margin-top: 7px; color: #ffac9f; font: 700 9px 'JetBrains Mono', monospace; letter-spacing: .06em; text-transform: uppercase; }
+  .rapport-validation { margin-top: 18px; border: 1px solid rgba(237, 183, 77, .34); border-radius: 11px; background: rgba(83, 57, 11, .13); overflow: hidden; }
+  .rapport-validation-head { padding: 12px 14px; border-bottom: 1px solid rgba(237, 183, 77, .22); color: #ffe6a1; font: 800 10px 'JetBrains Mono', monospace; letter-spacing: .08em; text-transform: uppercase; }
+  .rapport-validation-item { padding: 12px 14px; border-bottom: 1px solid rgba(237, 183, 77, .13); }
+  .rapport-validation-item:last-child { border-bottom: 0; }
+  .rapport-validation-item strong { color: #f8fbff; font-size: 13px; }
+  .rapport-validation-item p { margin-top: 6px; color: #bdd0d9; font-size: 11px; line-height: 1.4; white-space: pre-wrap; }
+  .rapport-validation-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .rapport-validation-btn { border: 1px solid #67dcb0; border-radius: 6px; padding: 7px 9px; background: rgba(49, 160, 113, .2); color: #b6ffdc; font: 800 10px 'JetBrains Mono', monospace; letter-spacing: .04em; text-transform: uppercase; cursor: pointer; }
+  .rapport-validation-btn:hover { background: rgba(49, 160, 113, .36); }
+  @media (max-width: 850px) { .rapport-mdc-grid { grid-template-columns: 1fr; }.rapport-mdc-wrap { padding: 15px; }.rapport-mdc-header { align-items: flex-start; flex-direction: column; }.rapport-mdc-stats { width: 100%; }.rapport-stat { flex: 1; } }
+  @media (max-width: 460px) { .rapport-fields { grid-template-columns: 1fr; }.rapport-mdc-header h2 { font-size: 21px; }.rapport-mdc-wrap { padding: 10px; } }
+
+  /* === Classement MDC (réanimations) === */
+  .classement-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(73, 153, 202, 0.16);
+  }
+  .classement-row:last-child { border-bottom: 0; }
+  .classement-rang {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(91, 155, 240, 0.14);
+    border: 1px solid #2c4a78;
+    color: #bcd4f7;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 800;
+    font-size: 13px;
+  }
+  .classement-row.classement-or .classement-rang { background: rgba(224, 176, 79, 0.22); border-color: #e0b04f; color: #ffe08a; }
+  .classement-row.classement-argent .classement-rang { background: rgba(200, 210, 220, 0.18); border-color: #c8d2dc; color: #e9eef3; }
+  .classement-row.classement-bronze .classement-rang { background: rgba(196, 130, 74, 0.2); border-color: #c4824a; color: #f0b98a; }
+  .classement-infos { flex: 1; min-width: 0; }
+  .classement-infos strong { display: block; font: 700 13.5px 'JetBrains Mono', monospace; color: #f8fbff; }
+  .classement-infos span { display: block; margin-top: 2px; color: #8faec4; font-size: 11px; }
+  .classement-valeur {
+    flex: 0 0 auto;
+    text-align: center;
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: rgba(36, 116, 156, .28);
+    color: #cceeff;
+    font: 800 15px 'JetBrains Mono', monospace;
+  }
+  .classement-valeur span { display: block; margin-top: 1px; font: 700 8px 'JetBrains Mono', monospace; letter-spacing: .08em; color: #9fd3ee; text-transform: uppercase; }
+
+  /* === Tableau Effectif recréé (pour tout le monde sauf double vérification) === */
+  .effectif-wrap {
+    width: 100%;
+    max-height: 88vh;
+    overflow: auto;
+    border-radius: 12px;
+    border: 1px solid rgba(91, 155, 240, 0.42);
+    background:
+      radial-gradient(circle at 100% 0%, rgba(66, 180, 153, 0.14), transparent 32%),
+      linear-gradient(150deg, #13223b 0%, #0d1729 58%, #09111f 100%);
+    box-shadow: 0 22px 55px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    scrollbar-color: #4f80c7 #0b1526;
+    scrollbar-width: thin;
+  }
+  .effectif-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 22px;
+    border-bottom: 1px solid rgba(91, 155, 240, 0.35);
+    position: sticky;
+    top: 0;
+    background: linear-gradient(90deg, #19335a, #152b4b 62%, #163d4a);
+    z-index: 2;
+    box-shadow: 0 8px 18px rgba(5, 12, 24, 0.25);
+  }
+  .effectif-header h2 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-primary);
+  }
+  .effectif-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #bbf2dc;
+    background: rgba(74, 157, 111, 0.16);
+    border: 1px solid rgba(104, 210, 163, 0.34);
+    border-radius: 999px;
+    padding: 6px 10px;
+    white-space: nowrap;
+  }
+  .effectif-loading {
+    padding: 60px 20px;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #a9c7f2;
+    letter-spacing: 0.06em;
+  }
+  table.effectif-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+  }
+  table.effectif-table thead th {
+    position: sticky;
+    top: 62px;
+    background: #102440;
+    text-align: left;
+    padding: 12px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #a9c7f2;
+    border-bottom: 1px solid rgba(91, 155, 240, 0.38);
+    white-space: nowrap;
+    z-index: 1;
+  }
+  table.effectif-table tbody td {
+    padding: 13px 18px;
+    border-bottom: 1px solid rgba(91, 155, 240, 0.14);
+    color: var(--text-primary);
+    white-space: nowrap;
+    transition: background 0.16s ease, color 0.16s ease;
+  }
+  table.effectif-table tbody tr:nth-child(even) td {
+    background: rgba(115, 162, 228, 0.035);
+  }
+  table.effectif-table tbody tr:hover td {
+    background: rgba(91, 155, 240, 0.13);
+  }
+  table.effectif-table tbody tr:hover td:first-child { box-shadow: inset 3px 0 0 #5b9bf0; }
+  table.effectif-table tbody tr:last-child td { border-bottom: none; }
+  .effectif-table .cell-matricule { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #eaf3ff; letter-spacing: 0.025em; }
+  .effectif-table .cell-dim { color: #8eadd8; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+  .effectif-wrap::-webkit-scrollbar { width: 10px; height: 10px; }
+  .effectif-wrap::-webkit-scrollbar-track { background: #0b1526; }
+  .effectif-wrap::-webkit-scrollbar-thumb { background: #315886; border: 2px solid #0b1526; border-radius: 99px; }
+  .effectif-wrap::-webkit-scrollbar-thumb:hover { background: #4f80c7; }
+
+  @media (max-width: 680px) {
+    .effectif-wrap { max-height: 78vh; border-radius: 9px; }
+    .effectif-header { padding: 14px 16px; }
+    .effectif-header h2 { font-size: 12px; }
+    .effectif-count { font-size: 10px; padding: 5px 8px; }
+    table.effectif-table thead th { top: 54px; padding: 10px 13px; }
+    table.effectif-table tbody td { padding: 11px 13px; }
+  }
+
+  /* === Règlement GDA recréé (affiché directement, sans document externe) === */
+  .reglement-wrap {
+    width: 100%;
+    max-height: 88vh;
+    overflow: auto;
+    border-radius: 4px;
+    border: 1px solid #2c4a78;
+    background: linear-gradient(180deg, #101d33, #0b1526);
+  }
+  .reglement-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #2c4a78;
+    position: sticky;
+    top: 0;
+    background: #16294a;
+    z-index: 2;
+  }
+  .reglement-header h2 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-primary);
+  }
+  .reglement-list {
+    list-style: none;
+    counter-reset: reglement-compteur;
+    padding: 24px 28px;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .reglement-list li {
+    counter-increment: reglement-compteur;
+    position: relative;
+    padding-left: 34px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .reglement-list li::before {
+    content: counter(reglement-compteur) '.';
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: #8fb2e6;
+  }
+  .reglement-highlight { color: var(--red-glow); }
+
+  /* === Matériel MDC GDA recréé (sous-menu + fiches, sans document externe) === */
+  .materiel-wrap {
+    width: 100%;
+    max-height: 88vh;
+    overflow: auto;
+    border-radius: 4px;
+    border: 1px solid #2c4a78;
+    background: linear-gradient(180deg, #101d33, #0b1526);
+  }
+  .materiel-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #2c4a78;
+    position: sticky;
+    top: 0;
+    background: #16294a;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .materiel-header h2 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-primary);
+  }
+  .btn-materiel-retour {
+    background: transparent;
+    border: 1px solid var(--blue);
+    border-radius: 3px;
+    padding: 7px 12px;
+    color: #8fb2e6;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+  .btn-materiel-retour:hover { border-color: var(--blue-glow); color: var(--blue-glow); box-shadow: 0 0 0 3px rgba(91, 155, 240, 0.18); }
+
+  .materiel-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 28px 24px;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  .btn-materiel-item {
+    background: rgba(20, 40, 74, 0.92);
+    border: 1px solid var(--blue);
+    border-radius: 4px;
+    padding: 20px 22px;
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: left;
+  }
+  .btn-materiel-item:hover { border-color: var(--blue-glow); color: var(--blue-glow); box-shadow: 0 0 0 3px rgba(91, 155, 240, 0.18); }
+  .btn-materiel-item:active { transform: scale(0.98); }
+
+  .materiel-card {
+    padding: 24px 28px 32px;
+  }
+  .materiel-titre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: var(--blue-glow);
+    margin-bottom: 18px;
+    text-transform: uppercase;
+  }
+  .materiel-section {
+    margin-bottom: 18px;
+  }
+  .materiel-section-titre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #8fb2e6;
+    margin-bottom: 8px;
+  }
+  .materiel-texte {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--text-primary);
+  }
+  .materiel-liste {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .materiel-liste li {
+    position: relative;
+    padding-left: 20px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-primary);
+  }
+  .materiel-liste li::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    top: 0;
+    color: #8fb2e6;
+    font-weight: 700;
+  }
+
+  .grade-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    font-weight: 600;
+    background: rgba(91, 155, 240, 0.14);
+    border: 1px solid #2c4a78;
+    color: #bcd4f7;
+    white-space: nowrap;
+  }
+  .grade-insigne {
+    height: 20px;
+    width: auto;
+    display: inline-block;
+    flex-shrink: 0;
+    vertical-align: middle;
+  }
+  .badge-insigne {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+  }
+  .badge-insigne .grade-insigne {
+    height: 90px;
+    width: auto;
+  }
+  .grade-pill.grade-commandement {
+    background: rgba(194, 59, 59, 0.18);
+    border-color: rgba(224, 82, 79, 0.5);
+    color: #ff8f8c;
+  }
+  .grade-pill.grade-direction {
+    background: rgba(47, 95, 168, 0.35);
+    border-color: var(--blue-glow);
+    color: #bcd8ff;
+  }
+
+  .rapport-pill {
+    display: inline-block;
+    min-width: 22px;
+    text-align: center;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    background: rgba(255,255,255,0.08);
+    color: #bcd4f7;
+  }
+  .rapport-pill.rapport-bas { background: rgba(224, 82, 79, 0.2); color: #ff9c99; }
+  .rapport-pill.rapport-moyen { background: rgba(224, 176, 79, 0.2); color: #f3cc7d; }
+  .rapport-pill.rapport-haut { background: rgba(74, 157, 111, 0.22); color: #8fe0af; }
+  .rapport-pill.rapport-exempte { background: rgba(0,0,0,0.4); border: 1px solid #333; color: #cfd6e0; }
+
+  .medaille-pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    font-weight: 600;
+    background: rgba(224, 176, 79, 0.18);
+    border: 1px solid rgba(224, 176, 79, 0.4);
+    color: #f0d9a0;
+  }
+  .medaille-pill.medaille-vide {
+    background: rgba(255,255,255,0.05);
+    border-color: #2c4a78;
+    color: #6f8bb8;
+  }
+
+  /* === Effectif médical : fiches horizontales compactes === */
+  .effectif-table thead { display: none; }
+  .effectif-table tbody { display: block; }
+  .effectif-table tbody tr {
+    display: grid;
+    grid-template-columns: minmax(115px, 1.05fr) minmax(165px, 1.45fr) minmax(145px, 1.2fr) minmax(100px, .8fr) minmax(150px, 1.15fr) minmax(105px, auto);
+    align-items: center;
+    min-height: 68px;
+    padding: 0 16px;
+    border-bottom: 1px solid rgba(91, 155, 240, 0.16);
+    background: rgba(7, 18, 34, 0.54);
+    transition: background 0.16s ease, box-shadow 0.16s ease;
+  }
+  .effectif-table tbody tr:nth-child(even) { background: rgba(16, 35, 61, 0.68); }
+  .effectif-table tbody tr:hover { background: rgba(34, 72, 117, 0.52); box-shadow: inset 3px 0 0 #5b9bf0; }
+  .effectif-table.effectif-table-lecture tbody tr {
+    grid-template-columns: minmax(115px, 1.05fr) minmax(165px, 1.45fr) minmax(145px, 1.2fr) minmax(100px, .8fr) minmax(150px, 1.15fr);
+  }
+  .effectif-table tbody td {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 5px;
+    min-width: 0;
+    padding: 10px 8px !important;
+    border: 0 !important;
+    background: transparent !important;
+    white-space: nowrap;
+  }
+  .effectif-table tbody td::before {
+    content: attr(data-label);
+    color: #7495bf;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .effectif-table tbody .cell-action { align-items: flex-end; }
+  @media (max-width: 900px) {
+    .effectif-table tbody tr { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 7px 12px; }
+    .effectif-table tbody .cell-action { align-items: flex-start; }
+  }
+  @media (max-width: 520px) {
+    .effectif-table tbody tr { grid-template-columns: 1fr; }
+  }
+
+  /* === Édition directe de l'effectif (double vérification) === */
+  .effectif-note {
+    padding: 10px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    color: #8fe0af;
+    background: rgba(74, 157, 111, 0.1);
+    border-bottom: 1px solid #2c4a78;
+  }
+  .effectif-edit-input {
+    width: 100%;
+    min-width: 90px;
+    background: var(--bg-void);
+    border: 1px solid var(--line-bright);
+    border-radius: 3px;
+    padding: 7px 9px;
+    font-family: 'Inter', sans-serif;
+    font-size: 12.5px;
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+  .effectif-edit-input:focus { border-color: var(--blue-glow); }
+  .effectif-edit-input-num { text-align: center; }
+  select.effectif-edit-input { cursor: pointer; }
+  td.cell-action { white-space: nowrap; }
+  .cell-action-double { display: flex; gap: 6px; }
+  .btn-effectif-modifier {
+    background: rgba(91, 155, 240, 0.16);
+    color: #bcd8ff;
+    border: 1px solid var(--blue-glow);
+    border-radius: 3px;
+    padding: 8px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .btn-effectif-modifier:hover { background: rgba(91, 155, 240, 0.28); }
+  .btn-effectif-annuler {
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid var(--line-bright);
+    border-radius: 3px;
+    padding: 8px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .btn-effectif-annuler:hover { border-color: var(--red-glow); color: var(--red-glow); }
+  .btn-effectif-save {
+    background: var(--green);
+    color: #0a0d12;
+    border: none;
+    border-radius: 3px;
+    padding: 8px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: filter 0.15s ease, transform 0.1s ease;
+  }
+  .btn-effectif-save:hover:not(:disabled) { filter: brightness(1.12); }
+  .btn-effectif-save:disabled { opacity: 0.6; cursor: default; }
+
+  /* === Bouton Administration (visible uniquement pour la double vérification) === */
+  .btn-lien-admin {
+    border-color: var(--red);
+    background: rgba(74, 20, 20, 0.92);
+  }
+  .btn-lien-admin:hover { border-color: var(--red-glow); color: var(--red-glow); box-shadow: 0 0 0 3px rgba(224, 82, 79, 0.18); }
+
+  /* === Panneau Administration === */
+  .admin-wrap {
+    width: 100%;
+    max-width: 560px;
+    margin: 0 auto;
+    border-radius: 4px;
+    border: 1px solid #2c4a78;
+    background: linear-gradient(180deg, #101d33, #0b1526);
+    transition: max-width 0.3s ease;
+  }
+  .admin-wrap.admin-wrap-large {
+    max-width: 1400px;
+  }
+  .admin-wrap-large .iframe-wrap {
+    height: 76vh;
+  }
+  .admin-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #2c4a78;
+    background: #16294a;
+  }
+  .admin-header h2 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-primary);
+  }
+  .admin-body { padding: 22px 24px 26px; }
+  .admin-body .field-label { display: block; margin-bottom: 10px; }
+  .admin-message {
+    margin-top: 12px;
+    min-height: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.02em;
+  }
+  .admin-message.ok { color: var(--green); }
+  .admin-message.fail { color: var(--red-glow); }
+  .admin-liste-titre {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin: 26px 0 14px;
+    padding: 8px 13px 8px 10px;
+    border: 1px solid rgba(85, 238, 189, 0.22);
+    border-radius: 999px;
+    background: rgba(8, 21, 32, 0.7);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #b8f5df;
+  }
+  .admin-liste-titre::before {
+    content: '●';
+    font-size: 11px;
+    color: #59e1ab;
+    text-shadow: 0 0 11px #59e1ab;
+  }
+  .admin-liste {
+    position: relative;
+    list-style: none;
+    padding: 5px 0 5px 28px;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    max-height: 390px;
+    overflow-y: auto;
+    background:
+      linear-gradient(90deg, transparent 0 15px, rgba(102, 219, 173, 0.32) 15px 16px, transparent 16px),
+      linear-gradient(180deg, rgba(8, 17, 28, 0.78), rgba(10, 20, 32, 0.36));
+    border: 1px solid rgba(95, 167, 198, 0.24);
+    border-radius: 14px;
+    scrollbar-color: #4bbf99 #0b1621;
+    scrollbar-width: thin;
+  }
+  .admin-liste li {
+    background: var(--bg-panel-raised);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 9px 12px;
+    font-size: 13px;
+    color: var(--text-primary);
+  }
+  .admin-liste li.admin-liste-vide { color: var(--text-dim); font-style: italic; }
+  .admin-liste li.log-entry {
+    position: relative;
+    overflow: visible;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    cursor: pointer;
+    transition: background 0.18s ease;
+  }
+  .admin-liste li.log-entry::before {
+    content: '';
+    position: absolute;
+    z-index: 1;
+    top: 23px;
+    left: -19px;
+    width: 10px;
+    height: 10px;
+    border: 3px solid #102332;
+    border-radius: 50%;
+    background: #63ddaf;
+    box-shadow: 0 0 0 2px rgba(98, 222, 175, 0.24), 0 0 12px rgba(98, 222, 175, 0.65);
+  }
+  .admin-liste li.log-entry:hover,
+  .admin-liste li.log-entry.log-ouvert {
+    background: rgba(102, 222, 175, 0.035);
+  }
+  .log-entry-main {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    min-height: 66px;
+    padding: 12px 13px 12px 2px;
+    border-bottom: 1px solid rgba(116, 174, 192, 0.13);
+  }
+  .log-avatar {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border: 1px solid rgba(100, 228, 180, 0.52);
+    border-radius: 50%;
+    background: radial-gradient(circle at 34% 28%, #336c65, #163641 72%);
+    color: #caffeb;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 800;
+    box-shadow: 0 0 0 4px rgba(85, 220, 169, 0.06);
+  }
+  .log-details { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .log-expand {
+    width: 24px;
+    height: 24px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(126, 180, 194, 0.25);
+    border-radius: 50%;
+    color: #8fb6bf;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    line-height: 1;
+    transition: transform 0.18s ease, color 0.18s ease, background 0.18s ease;
+  }
+  .log-entry.log-ouvert .log-expand { transform: rotate(180deg); color: #caffeb; background: rgba(77, 208, 162, 0.14); }
+  .log-entry .log-delete-btn {
+    display: none;
+    width: auto;
+    margin: 0 13px 13px 53px;
+    background: transparent;
+    border: 1px dashed rgba(255, 131, 125, 0.66);
+    border-radius: 999px;
+    padding: 7px 13px;
+    color: #ffaba6;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .log-entry .log-delete-btn:hover { background: rgba(194, 59, 59, 0.2); border-style: solid; border-color: var(--red-glow); color: #fff; }
+  .log-entry.log-ouvert .log-delete-btn { display: block; }
+  .log-entry .log-texte { color: #d8e9ea; line-height: 1.4; font-size: 12.5px; }
+  .log-entry .log-texte strong { color: #fff; font-size: 14px; }
+  .log-entry .log-non-sync {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: rgba(194, 59, 59, 0.18);
+    border: 1px solid rgba(224, 82, 79, 0.5);
+    color: #ff8f8c;
+    white-space: nowrap;
+  }
+  .log-entry .log-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #78a7ad;
+  }
+  .log-action-badge {
+    display: inline-block;
+    padding: 3px 7px;
+    border: 0;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-right: 5px;
+    vertical-align: 1px;
+  }
+  .log-action-promotion { background: #1c553e; color: #9bffd0; }
+  .log-action-retrogradation { background: #682b32; color: #ffbab5; }
+  .log-action-sanction { background: #284e73; color: #c6e5ff; }
+  .log-action-depart { background: #3b4650; color: #e1e9e9; }
+  .log-action-medaille { background: #705d27; color: #fff0ad; }
+  .log-action-defaut { background: #3b4650; color: #e1e9e9; }
+  @media (max-width: 520px) {
+    .admin-liste { padding-left: 24px; }
+    .admin-liste li.log-entry::before { left: -17px; }
+    .log-entry-main { gap: 9px; padding-right: 8px; }
+    .log-avatar { width: 33px; height: 33px; font-size: 12px; }
+    .log-entry .log-meta { font-size: 9px; letter-spacing: 0.04em; }
+    .log-entry .log-delete-btn { margin-left: 42px; }
+  }
+
+  /* === Formulaire d'ajout manuel d'un log (Promo / Rétro / Sanction / Départ / Médaille) === */
+  .log-add-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    align-items: center;
+    background: linear-gradient(135deg, rgba(14, 38, 47, 0.96), rgba(14, 25, 39, 0.94));
+    border: 1px solid rgba(99, 215, 177, 0.28);
+    border-radius: 14px;
+    padding: 13px;
+    margin-bottom: 17px;
+    box-shadow: inset 0 1px 0 rgba(209, 255, 240, 0.06), 0 10px 24px rgba(0, 0, 0, 0.16);
+  }
+  .log-add-form select,
+  .log-add-form input {
+    background: rgba(5, 17, 27, 0.72);
+    border: 1px solid rgba(128, 184, 192, 0.38);
+    border-radius: 8px;
+    padding: 9px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-primary);
+    outline: none;
+  }
+  .log-add-form select:focus,
+  .log-add-form input:focus { border-color: #69e4b7; box-shadow: 0 0 0 3px rgba(105, 228, 183, 0.12); }
+  .log-add-form input[type="text"] { flex: 1 1 160px; min-width: 140px; }
+  .log-add-form .btn-cell-action {
+    margin-right: 0;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #49bc8f, #2d8c86);
+    box-shadow: 0 5px 12px rgba(33, 140, 111, 0.25);
+  }
+  .log-add-msg {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    margin-bottom: 10px;
+  }
+  .log-add-msg.ok { color: #8fe0af; }
+  .log-add-msg.fail { color: #ff9c99; }
+
+  .admin-topbar-fixe {
+    position: fixed;
+    top: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 25;
+    display: none;
+    gap: 10px;
+    background: rgba(18, 22, 29, 0.94);
+    border: 1px solid var(--line-bright);
+    border-radius: 4px;
+    padding: 10px 14px;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 4px 18px rgba(0,0,0,0.4);
+  }
+  body.mode-admin .admin-topbar-fixe { display: flex; }
+  body.mode-admin .console { margin-top: 140px; }
+body.mode-boutons #contenuLienMDC{margin-top:140px;}
+  .btn-admin-tab {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--line-bright);
+    border-radius: 3px;
+    padding: 9px 16px;
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+  .btn-admin-tab:hover { border-color: var(--blue-glow); color: var(--blue-glow); }
+  .btn-admin-tab.actif {
+    background: var(--blue);
+    border-color: var(--blue-glow);
+    color: #fff;
+  }
+  .admin-contenu { padding: 22px 24px 26px; }
+  .admin-placeholder {
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.03em;
+  }
+  .admin-contenu .iframe-wrap { margin: -22px -24px -26px; }
+
+  /* === Fenêtre centrale (modale) pour l'Effectif MDC GDA (Google Sheet) === */
+  .effectif-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(6, 9, 15, 0.72);
+    backdrop-filter: blur(3px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+  }
+  .effectif-modal-box {
+    width: min(1300px, 92vw);
+    height: min(820px, 86vh);
+    background: linear-gradient(180deg, #101d33, #0b1526);
+    border: 1px solid #2c4a78;
+    border-radius: 6px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.55);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .effectif-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid #2c4a78;
+    background: #16294a;
+  }
+  .effectif-modal-header h2 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-primary);
+  }
+  .effectif-modal-close {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--line-bright);
+    border-radius: 3px;
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 7px 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .effectif-modal-close:hover { border-color: var(--red-glow); color: var(--red-glow); }
+  .effectif-modal-box .iframe-wrap { flex: 1; margin: 0; height: auto; }
+
+  .footer-note {
+    margin-top: 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-faint);
+    text-align: center;
+    letter-spacing: 0.04em;
+  }
+  .badge-corner {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10;
+    background: rgba(18, 22, 29, 0.92);
+    border: 1px solid var(--line-bright);
+    border-radius: 4px;
+    display: grid;
+    grid-template-columns: 54px minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    column-gap: 13px;
+    row-gap: 4px;
+    align-items: center;
+    width: max-content;
+    max-width: calc(100vw - 40px);
+    min-width: 210px;
+    padding: 11px 14px;
+    margin: 0;
+    box-sizing: border-box;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 4px 18px rgba(0,0,0,0.4);
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+  }
+  .btn-refresh-corner {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: rgba(18, 22, 29, 0.92);
+    border: 1px solid var(--line-bright);
+    border-radius: 4px;
+    padding: 10px 14px;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 4px 18px rgba(0,0,0,0.4);
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity 0.3s ease, transform 0.3s ease, border-color 0.15s ease, color 0.15s ease;
+    pointer-events: none;
+  }
+  .btn-refresh-corner.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .btn-refresh-corner:hover { border-color: var(--blue-glow); color: var(--blue-glow); }
+  .btn-refresh-corner:active { transform: scale(0.96); }
+  .btn-refresh-corner svg { width: 13px; height: 13px; flex: none; transition: transform 0.4s ease; }
+  .btn-refresh-corner.tourne svg { transform: rotate(360deg); }
+  .badge-corner.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .badge-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    white-space: nowrap;
+    grid-column: 2;
+    min-width: 0;
+  }
+  .badge-line + .badge-line { margin-top: 0; }
+  .badge-line .badge-label {
+    color: var(--text-dim);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .badge-line .badge-value {
+    color: var(--text-primary);
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .badge-corner .badge-insigne {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 54px;
+    min-width: 54px;
+    margin: 0;
+  }
+  .badge-corner .grade-insigne {
+    width: auto;
+    max-width: 48px;
+    height: 54px;
+    object-fit: contain;
+  }
+  .corner-controls { display: contents; }
+  @media (max-width: 1100px) {
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: flex-start;
+      padding: 12px;
+    }
+    .corner-controls {
+      position: sticky;
+      top: 0;
+      z-index: 60;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      box-sizing: border-box;
+      background: rgba(5, 15, 27, 0.94);
+      border: 1px solid var(--line-bright);
+      border-radius: 6px;
+      backdrop-filter: blur(8px);
+    }
+    .badge-corner {
+      position: static;
+      top: auto;
+      right: auto;
+      width: min(56%, 420px);
+      max-width: none;
+      margin: 0 0 0 auto;
+      box-sizing: border-box;
+    }
+    .btn-refresh-corner {
+      position: static;
+      top: auto;
+      left: auto;
+      width: max-content;
+      margin: 0;
+    }
+    .console { width: 100%; max-width: 100%; margin-inline: auto; }
+    .console.expanded { max-width: 100%; }
+  }
+  @media (max-width: 520px) {
+    body { padding: 6px; }
+    .corner-controls {
+      position: relative;
+      flex-wrap: wrap;
+      padding: 7px;
+    }
+    .btn-refresh-corner {
+      align-self: center;
+      padding: 9px 10px;
+      font-size: 10px;
+    }
+    .badge-corner {
+      grid-template-columns: 44px minmax(0, 1fr);
+      column-gap: 10px;
+      width: 100%;
+      flex: 1 1 230px;
+      min-width: 0;
+      margin: 0;
+      padding: 9px 11px;
+    }
+    .badge-corner .badge-insigne { width: 44px; min-width: 44px; }
+    .badge-corner .grade-insigne { max-width: 40px; height: 46px; }
+    .badge-line { font-size: 11px; }
+    .badge-line .badge-label { font-size: 9px; }
+    body.mode-boutons .menu-boutons {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 7px;
+    }
+    body.mode-boutons .btn-lien-mdc {
+      width: 100%;
+      min-width: 0;
+      padding: 12px 9px;
+    }
+    .side-img { display: none; }
+  }
+
+
+</style>
+</head>
+<body>
+
+<div class="corner-controls">
+<button class="btn-refresh-corner" id="btnRefreshCorner" onclick="rafraichirSite()" title="Recharger la page">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+  Actualiser
+</button>
+
+<div class="badge-corner" id="badgeCorner">
+  <div class="badge-insigne" id="badgeInsigne"></div>
+  <div class="badge-line"><span class="badge-label">Matricule</span><span class="badge-value" id="badgeMatricule">—</span></div>
+  <div class="badge-line"><span class="badge-label">Grade MDC</span><span class="badge-value" id="badgeGrade">—</span></div>
+</div>
+</div>
+
+<div class="admin-topbar-fixe" id="adminTopbarFixe">
+  <button class="btn-admin-tab" id="ongletAdminEffectif" onclick="afficherEffectifReelAdmin()">Effectif MDC GDA</button>
+  <button class="btn-admin-tab" id="ongletAdminLogs" onclick="afficherLogsAdmin()">Logs</button>
+  <button class="btn-admin-tab" id="ongletAdminPermission" onclick="afficherPermissionsAdmin()">Permission</button>
+</div>
+
+<div class="side-img left"></div>
+<div class="side-img right"></div>
+
+<div class="console">
+  <div class="header">
+    <div class="crest">
+      <div class="coin" id="coinLogo">
+        <div class="coin-layer coin-front"><img src="image/MDC GDA.png" alt="Blason M.D.C / G.D.A"></div>
+      </div>
+    </div>
+    <div class="header-text">
+      <div class="eyebrow">M.D.C — Département Médical</div>
+      <h1>Dashboard Médecin GDA</h1>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-strip"></div>
+    <div class="panel-body">
+      <div class="input-row" id="inputRow" style="display:none;">
+        <div class="input-scan">
+          <input type="text" id="matricule" placeholder="Matricule" autocomplete="off" spellcheck="false">
+        </div>
+        <button class="btn-verify" id="verifyBtn">Vérifier</button>
+      </div>
+
+      <div class="input-row" id="discordRow" style="display:none; margin-top:14px;">
+        <div class="input-scan">
+          <input type="text" inputmode="numeric" id="discordIdVerif" placeholder="Identifiant Discord" autocomplete="off" spellcheck="false">
+        </div>
+        <button class="btn-verify" id="discordVerifyBtn">Confirmer</button>
+      </div>
+
+      <div class="scan-bar-wrap" id="scanBar" style="display:none;">
+        <div class="scan-bar">
+          <div class="scan-bar-fill" id="scanBarFill"></div>
+        </div>
+        <span class="scan-percent" id="scanPercent">0%</span>
+      </div>
+
+      <div class="status-zone" id="statusZone"></div>
+      <div id="bigStatus"></div>
+      <div class="action-zone" id="actionZone"></div>
+    </div>
+  </div>
+
+  <div class="footer-note">Accès réservé au personnel médical enregistré</div>
+</div>
+
+<script>
+  // === Source des matricules : Google Sheet en direct ===
+  const SHEET_ID = '1dzJuItFv1XKjbhuyz-qkrWLdWkA-T1aY2vDWmCw36Ew';
+  const SHEET_NOM_ONGLET = 'Feuille 1';
+  const SHEET_JSON_URL = `https://opensheet.elk.sh/${SHEET_ID}/${encodeURIComponent(SHEET_NOM_ONGLET)}`;
+
+  // Le Worker réalise la connexion OAuth Discord et vérifie côté serveur que
+  // l'identifiant du compte Discord connecté appartient bien au matricule.
+  const DISCORD_AUTH_WORKER_URL = 'https://mdc-discord-auth.gdamaxime.workers.dev';
+
+  // === Source des identifiants Discord (double vérification) : onglet "parametre" ===
+  const SHEET_ONGLET_PARAMETRE = 'parametre';
+  const SHEET_JSON_URL_PARAMETRE = `https://opensheet.elk.sh/${SHEET_ID}/${encodeURIComponent(SHEET_ONGLET_PARAMETRE)}`;
+
+  // === Écriture dans le Google Sheet (ajout de nom + modification de l'effectif) ===
+  // opensheet.elk.sh ne permet que la LECTURE. Pour écrire dans le Sheet depuis le
+  // site, il faut déployer le petit script "Apps Script" fourni séparément
+  // (AppsScript_MDC_GDA.gs) en tant que Web App, puis coller son URL ci-dessous.
+  // Tant que cette URL n'est pas renseignée, l'ajout de nom et la modification de
+  // l'effectif afficheront un message d'erreur au lieu d'écrire dans le Sheet.
+    const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbxPBG6GhUG01SJ3eAVRB3CdS-bbfxLSNBIhojLShje-ViBRL1iEQeujVvKLj3IT4SqE1Q/exec';
+
+  async function appelerWebApp(action, donnees) {
+    if (!WEBAPP_URL || WEBAPP_URL.startsWith('COLLEZ_ICI')) {
+      throw new Error("L'URL de l'Apps Script n'a pas été configurée (voir WEBAPP_URL dans le code).");
+    }
+    const reponse = await fetch(WEBAPP_URL, {
+      method: 'POST',
+      // Content-Type text/plain évite le pré-vol CORS (requête simple),
+      // le Apps Script lit quand même du JSON dans e.postData.contents.
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action, ...donnees })
+    });
+    const texte = await reponse.text();
+    let resultat;
+    try {
+      resultat = JSON.parse(texte);
+    } catch (e) {
+      throw new Error('Réponse invalide du serveur de mise à jour.');
+    }
+    if (!resultat.ok) {
+      throw new Error(resultat.erreur || "Échec de l'opération.");
+    }
+    return resultat;
+  }
+
+  async function envoyerMiseAJourEffectif(matricule, champs) {
+    return appelerWebApp('modifierEffectif', { matricule, champs });
+  }
+
+  async function ajouterNomParametre(nom) {
+    return appelerWebApp('ajouterNom', { nom });
+  }
+
+  // === Documents supplémentaires par matricule (double vérification requise) ===
+  // Ajoute ou modifie les entrées ci-dessous : clé = matricule en minuscule.
+  // Chaque matricule listé ici devra confirmer son identifiant Discord avant d'accéder au site ET verra ces documents.
+
+  // === Système de permissions (aligné sur DoubleVerif.gs côté Apps Script) ===
+  // Le backend stocke les permissions dans l'onglet "DoubleVerifSite" (slots
+  // "Perme X" / état "activer"/"desactiver" par matricule), via les fonctions
+  // aPermissionDoubleVerif_ (lecture) et definirPermissionDoubleVerif_ (écriture).
+  // Deux actions Web App exposent ça côté site :
+  //   - 'lireDoubleVerifSite'  { matricule }              -> { ok, permissions: { nomPermission: bool, ... } }
+  //   - 'majDoubleVerifSite'   { matricule, permissions }  -> écrit plusieurs permissions d'un coup
+  //
+  // Les noms de permission ci-dessous DOIVENT correspondre exactement à ceux
+  // utilisés côté serveur : 'validerRapports' et 'supprimerRapports' sont déjà
+  // vérifiés par Rapports MDC.gs (aAccesGestionRapports_, validerRapport,
+  // supprimerRapport). 'administration' et 'edition_effectif' ne sont
+  // vérifiés QUE côté site (comme avant), mais suivent le même mécanisme.
+  //
+  // Pour ajouter une NOUVELLE fonction protégée (ex : "gérer le matériel") :
+  //   1) ajoute une entrée dans FONCTIONS_PERMISSION ci-dessous ;
+  //   2) à l'endroit du code à protéger : aPermission(matriculeActif, 'ta_cle') ;
+  //   3) si la fonction doit AUSSI être vérifiée côté serveur (recommandé pour
+  //      tout ce qui écrit dans le Sheet), ajoute un appel à
+  //      aPermissionDoubleVerif_(matricule, 'ta_cle') dans le .gs correspondant
+  //      -> regarde validerRapport()/supprimerRapport() dans Rapports MDC.gs,
+  //      ce sont les exemples déjà faits.
+  const FONCTIONS_PERMISSION = [
+    { cle: 'administration', label: 'Administration (accès complet)', description: "Accès à TOUT le panneau Administration (Effectif réel, Logs, Permission), sans avoir besoin des 3 permissions ci-dessous individuellement." },
+    { cle: 'admin_effectif_reel', label: 'Onglet "Effectif MDC GDA" (Administration)', description: 'Ouvrir le bouton "Effectif MDC GDA" dans le panneau Administration (accès au Google Sheet réel).' },
+    { cle: 'admin_logs', label: 'Onglet "Logs" (Administration)', description: 'Voir le journal des promotions/rétrogradations et médailles dans le panneau Administration.' },
+    { cle: 'admin_gerer_permissions', label: 'Onglet "Permission" (Administration)', description: 'Voir et modifier les permissions / double vérification des autres matricules.' },
+    { cle: 'edition_effectif', label: "Édition de l'effectif", description: 'Modifier grade / rapport / médaille dans le tableau Effectif.' },
+    { cle: 'validerRapports', label: 'Valider les rapports', description: "Voir la file d'attente et valider les rapports envoyés par les médecins." },
+    { cle: 'supprimerRapports', label: 'Supprimer les rapports', description: 'Voir la file d\'attente / archives et supprimer un rapport (en attente ou déjà validé).' },
+    { cle: 'gererSuggestions', label: 'Gérer les suggestions MDC', description: "Voir la file d'attente et valider ou refuser les suggestions envoyées par les médecins." },
+    { cle: 'gererEntrainements', label: "Gérer les demandes d'entraînement", description: "Voir la file d'attente et valider ou refuser les demandes d'entraînement envoyées par les médecins." },
+    { cle: 'gererClassement', label: 'Réinitialiser le classement', description: "Réinitialiser le classement des réanimations de tout l'effectif MDC GDA." },
+  ];
+
+  // Il n'y a plus de liste de matricules codée en dur ici : les grades qui
+  // doivent avoir accès à tout (Lieutenant-Colonel, Commandant, Vice-Commandant,
+  // Gérant Médecin, Co-Gérant Médecin) sont gérés uniquement côté serveur
+  // (CONFIG.GRADES_ACCES_COMPLET dans Config.gs) — lireDoubleVerifSite()
+  // renvoie déjà toutes les permissions à true pour ces grades, donc le site
+  // n'a besoin d'aucune règle particulière ici.
+
+  // Permissions du matricule actuellement connecté (matriculeActif), chargées
+  // au login par chargerPermissions(). Structure : { nomPermission: bool }
+  let PERMISSIONS_ACTIVES = {};
+
+  function aPermission(matricule, fonction) {
+    const val = (matricule || '').toLowerCase();
+    // On ne connaît les permissions en détail que pour matriculeActif (chargées au login).
+    if (val !== (matriculeActif || '').toLowerCase()) return false;
+    return PERMISSIONS_ACTIVES[fonction] === true;
+  }
+
+  // 'administration' donne accès à TOUT le panneau (raccourci pratique) ; les
+  // 3 permissions granulaires ci-dessous donnent accès à un seul onglet à la
+  // fois. Chaque helper renvoie vrai si l'un OU l'autre est actif.
+  function aAccesAdministration(matricule) {
+    return aPermission(matricule, 'administration')
+      || aPermission(matricule, 'admin_effectif_reel')
+      || aPermission(matricule, 'admin_logs')
+      || aPermission(matricule, 'admin_gerer_permissions');
+  }
+  function aAccesOngletAdminEffectif(matricule) {
+    return aPermission(matricule, 'administration') || aPermission(matricule, 'admin_effectif_reel');
+  }
+  function aAccesOngletAdminLogs(matricule) {
+    return aPermission(matricule, 'administration') || aPermission(matricule, 'admin_logs');
+  }
+  function aAccesOngletAdminPermission(matricule) {
+    return aPermission(matricule, 'administration') || aPermission(matricule, 'admin_gerer_permissions');
+  }
+
+  // Miroir de aAccesGestionRapports_ (Rapports MDC.gs) côté site : accès à la
+  // file de rapports (lecture) dès qu'on peut valider OU supprimer.
+  function aAccesGestionRapports(matricule) {
+    return aPermission(matricule, 'validerRapports') || aPermission(matricule, 'supprimerRapports');
+  }
+
+  // Vrai si le matricule a au moins une permission active (déclenche la
+  // double vérification Discord à la connexion). Interroge directement le
+  // backend puisqu'à ce stade matriculeActif n'est pas encore défini.
+  async function aAuMoinsUnePermission(matricule) {
+    const val = (matricule || '').toLowerCase();
+    try {
+      const resultat = await appelerWebApp('lireDoubleVerifSite', { matricule: val });
+      return Object.values(resultat.permissions || {}).some((actif) => actif === true);
+    } catch (erreur) {
+      console.warn('Lecture des permissions impossible, double vérification non déclenchée pour ce matricule.', erreur);
+      return false;
+    }
+  }
+
+  // Charge les permissions du matricule connecté (matriculeActif) depuis le
+  // Sheet. Si l'appel échoue (action pas encore déployée côté Apps Script),
+  // on continue avec des permissions vides, sans bloquer la connexion.
+  async function chargerPermissions() {
+    PERMISSIONS_ACTIVES = {};
+    try {
+      const resultat = await appelerWebApp('lireDoubleVerifSite', { matricule: matriculeActif });
+      PERMISSIONS_ACTIVES = resultat.permissions || {};
+    } catch (erreur) {
+      console.warn("Permissions : lecture impossible pour l'instant.", erreur);
+    }
+  }
+
+  // Lit les permissions d'un matricule QUELCONQUE (utilisé par le panneau
+  // Administration > Permission pour gérer les droits des AUTRES).
+  async function lireDroitsMatricule(matricule) {
+    const resultat = await appelerWebApp('lireDoubleVerifSite', { matricule: (matricule || '').toLowerCase() });
+    return resultat.permissions || {};
+  }
+
+  // Écrit plusieurs permissions d'un coup pour un matricule.
+  // permissions = { validerRapports: true, supprimerRapports: false, ... }
+  async function enregistrerDroitsMatricule(matricule, permissions) {
+    await appelerWebApp('majDoubleVerifSite', { matricule: (matricule || '').toLowerCase(), permissions });
+    if ((matricule || '').toLowerCase() === (matriculeActif || '').toLowerCase()) {
+      PERMISSIONS_ACTIVES = { ...PERMISSIONS_ACTIVES, ...permissions };
+    }
+  }
+
+  const DOCUMENTS_SPECIAUX = {
+    'misfit': [
+      { label: 'Protocole médical avancé', url: 'https://example.com/protocole-avance' }
+    ],
+    'marslu': [
+      { label: 'Protocole médical avancé', url: 'https://example.com/protocole-avance' }
+    ],
+    'yesod': [
+      { label: 'Protocole médical avancé', url: 'https://example.com/protocole-avance' }
+    ]
+  };
+
+  async function chargerMatriculesDepuisSheet() {
+    const reponse = await fetch(SHEET_JSON_URL, { cache: 'no-store' });
+    if (!reponse.ok) throw new Error(`Statut HTTP ${reponse.status} pour l'onglet "${SHEET_NOM_ONGLET}"`);
+    const lignes = await reponse.json();
+    // Retourne une Map : nom (en minuscule) -> grade
+    const map = new Map();
+    lignes.forEach(ligne => {
+      const nom = (ligne['Matricule'] || '').trim();
+      const grade = (ligne['Grade'] || '').trim();
+      if (nom.length > 0) {
+        map.set(nom.toLowerCase(), grade);
+      }
+    });
+    return map;
+  }
+
+  /**
+   * Charge la liste complète de l'effectif (toutes les colonnes) pour construire
+   * un tableau recréé côté interface, sans exposer le vrai document Google Sheet.
+   */
+  async function chargerEffectifComplet() {
+    const reponse = await fetch(SHEET_JSON_URL, { cache: 'no-store' });
+    if (!reponse.ok) throw new Error(`Statut HTTP ${reponse.status} pour l'onglet "${SHEET_NOM_ONGLET}"`);
+    const lignes = await reponse.json();
+    return lignes
+      .map(ligne => ({
+        matricule: (ligne['Matricule'] || '').trim(),
+        grade: (ligne['Grade'] || '').trim(),
+        steamId: (ligne['Steam ID'] || '').trim(),
+        rapport: (ligne['Rapport'] || '').toString().trim(),
+        medaille: (ligne['Médaille'] || '').trim()
+      }))
+      .filter(l => l.matricule.length > 0);
+  }
+
+  async function chargerDiscordIdsDepuisSheet() {
+    try {
+      const reponse = await fetch(SHEET_JSON_URL_PARAMETRE, { cache: 'no-store' });
+      if (!reponse.ok) throw new Error('Impossible de lire la feuille des identifiants Discord.');
+      const lignes = await reponse.json();
+      // Retourne une Map : nom (en minuscule) -> identifiant Discord.
+      // La colonne H doit être nommée "Discord ID" et la colonne I
+      // "Attribué à Discord" (pour éviter le doublon avec la colonne F).
+      const map = new Map();
+      lignes.forEach(ligne => {
+        const nom = (ligne['Attribué à Discord'] || '').trim();
+        const discordId = (ligne['Discord ID'] || '').trim();
+        if (nom.length > 0 && discordId.length > 0) {
+          map.set(nom.toLowerCase(), discordId);
+        }
+      });
+      return map;
+    } catch (e) {
+      console.warn('Identifiants Discord indisponibles :', e);
+      return new Map();
+    }
+  }
+
+  const input = document.getElementById('matricule');
+  const verifyBtn = document.getElementById('verifyBtn');
+  const inputRow = document.getElementById('inputRow');
+  const discordRow = document.getElementById('discordRow');
+  const discordInput = document.getElementById('discordIdVerif');
+  const discordVerifyBtn = document.getElementById('discordVerifyBtn');
+  const badgeCorner = document.getElementById('badgeCorner');
+  const badgeMatricule = document.getElementById('badgeMatricule');
+  const badgeGrade = document.getElementById('badgeGrade');
+  const badgeInsigne = document.getElementById('badgeInsigne');
+
+  const statusZone = document.getElementById('statusZone');
+  const bigStatus = document.getElementById('bigStatus');
+  const actionZone = document.getElementById('actionZone');
+  const scanBar = document.getElementById('scanBar');
+  const scanBarFill = document.getElementById('scanBarFill');
+  const scanPercent = document.getElementById('scanPercent');
+
+  let contexteEnAttente = null; // { valeur, discordIdAttendu, grade }
+  let intervalleScan = null;
+  let fenetreConnexionDiscord = null;
+
+  function fermerFenetreConnexionDiscord() {
+    if (fenetreConnexionDiscord && !fenetreConnexionDiscord.closed) fenetreConnexionDiscord.close();
+    fenetreConnexionDiscord = null;
+  }
+
+  function demarrerBarreScan(dureeMs, pctDepart, pctFin) {
+    const debutScan = Date.now();
+    const depart = pctDepart != null ? pctDepart : 0;
+    const fin = pctFin != null ? pctFin : 100;
+    scanBarFill.style.width = depart + '%';
+    scanPercent.textContent = depart + '%';
+    intervalleScan = setInterval(() => {
+      const ratio = Math.min(1, (Date.now() - debutScan) / dureeMs);
+      const pct = Math.round(depart + (fin - depart) * ratio);
+      scanBarFill.style.width = pct + '%';
+      scanPercent.textContent = pct + '%';
+      if (ratio >= 1) clearInterval(intervalleScan);
+    }, 100);
+  }
+
+  function arreterBarreScan() {
+    if (intervalleScan) clearInterval(intervalleScan);
+    intervalleScan = null;
+  }
+
+  function setStatus(state, message) {
+    statusZone.classList.add('active');
+    statusZone.innerHTML = `
+      <div class="status-line ${state}">
+        <span class="dot ${state}"></span>
+        <span>${message}</span>
+      </div>
+    `;
+  }
+
+  function setBigStatus(state, label) {
+    bigStatus.innerHTML = `<div class="big-status ${state}">${label}</div>`;
+  }
+
+  function clearAll() {
+    statusZone.classList.remove('active');
+    statusZone.innerHTML = '';
+    bigStatus.innerHTML = '';
+    actionZone.classList.remove('open');
+    actionZone.innerHTML = '';
+    arreterBarreScan();
+    scanBar.style.display = 'none';
+    scanBarFill.style.width = '0%';
+    scanPercent.textContent = '0%';
+    discordRow.style.display = 'none';
+    discordInput.value = '';
+    contexteEnAttente = null;
+    document.body.classList.remove('mode-boutons');
+    document.body.classList.remove('lien-ouvert');
+    document.body.classList.remove('mode-admin');
+    arreterAutoRefreshEffectif();
+    fermerModaleEffectifReel();
+  }
+
+  // === Menu de boutons (remplace le site Genially direct pour tout le monde) ===
+  const BOUTONS_MDC_GDA = [
+    { label: 'Effectif MDC GDA', url: 'https://docs.google.com/spreadsheets/d/1dzJuItFv1XKjbhuyz-qkrWLdWkA-T1aY2vDWmCw36Ew/edit?usp=sharing' },
+    { label: 'Réglement GDA', url: 'LIEN_A_COMPLETER_REGLEMENT_GDA' },
+    { label: 'Matériel MDC GDA', url: 'LIEN_A_COMPLETER_MATERIEL_MDC_GDA' },
+    { label: 'Rapport MDC GDA', url: '' },
+    { label: 'Suggestion MDC', url: '' },
+    { label: 'Demande d\'entraînement', url: '' },
+    { label: 'Classement', url: '' }
+  ];
+
+  let matriculeActif = null; // matricule de la personne actuellement connectée sur le dashboard
+  let gradeActif = ''; // grade associé au matricule connecté, affiché en lecture seule dans les rapports
+  let boutonsActifs = []; // liste des boutons réellement affichés pour l'utilisateur courant
+
+  function obtenirBoutonsPourUtilisateur() {
+    const boutons = BOUTONS_MDC_GDA.slice();
+    if (aAccesAdministration(matriculeActif)) {
+      boutons.push({ label: 'Administration', url: 'ADMINISTRATION' });
+    }
+    return boutons;
+  }
+  let intervalleAutoRefreshEffectif = null; // rafraîchit le tableau effectif tant qu'il est affiché
+  const DUREE_AUTO_REFRESH_EFFECTIF = 15000; // 15s : le Sheet lui-même est mis en cache ~30s côté API
+
+  function arreterAutoRefreshEffectif() {
+    if (intervalleAutoRefreshEffectif) {
+      clearInterval(intervalleAutoRefreshEffectif);
+      intervalleAutoRefreshEffectif = null;
+    }
+  }
+
+  function classeGrade(grade) {
+    const g = (grade || '').toLowerCase();
+    if (g.includes('lieutenant-colonel') || g.includes('commandant') || g.includes('vice-commandant')) {
+      return 'grade-commandement';
+    }
+    if (g.includes('gérant') || g.includes('gerant')) {
+      return 'grade-direction';
+    }
+    return '';
+  }
+
+  // === Galons (insignes) associés à chaque grade médecin ===
+  // Normalise (minuscule + sans accents) pour matcher de façon fiable.
+  function normaliserTexte(txt) {
+    return (txt || '')
+      .toString()
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
+
+  const GALONS_GRADE = {
+    'lieutenant-colonel': 'image/grade-lieutenant-colonel.png',
+    'commandant': 'image/grade-commandant.png',
+    'vice-commandant': 'image/grade-vice-commandant.png',
+    'gerant medecin': 'image/grade-gerant-medecin.png',
+    'co-gerant medecin': 'image/grade-co-gerant-medecin.png',
+    'medecin senior': 'image/grade-medecin-senior.png',
+    'medecin experimente': 'image/grade-medecin-experimente.png',
+    'medecin junior': 'image/grade-medecin-junior.png'
+  };
+
+  function obtenirGalonGrade(grade) {
+    const cle = normaliserTexte(grade);
+    return GALONS_GRADE[cle] || '';
+  }
+
+function construireInsigneGrade(grade) {
+    const src = obtenirGalonGrade(grade);
+    if (!src) return '';
+    const alt = (grade || '').toString().trim();
+    return `<img class="grade-insigne" src="${src}" alt="Galon ${alt}" onerror="this.remove()">`;
+}
+
+  function classeRapport(rapport) {
+    const val = (rapport || '').toString().trim();
+    if (val.toLowerCase() === 'exempter') return 'rapport-exempte';
+    const n = Number(val);
+    if (isNaN(n)) return '';
+    if (n <= 2) return '';
+    if (n <= 5) return 'rapport-bas';
+    if (n <= 8) return 'rapport-moyen';
+    return 'rapport-haut';
+  }
+
+  // === Journal (Logs) : trace chaque "up" de rapport et chaque médaille donnée ===
+  // Stocké dans l'onglet dédié "Logs" du Google Sheet : persistant pour tout
+  // le monde, sur tous les appareils/navigateurs. Ne dépend plus du
+  // localStorage, qui était propre à un seul navigateur et pouvait être vidé
+  // (cache navigateur, navigateur NUI réinitialisé, etc.).
+  // Colonnes de l'onglet "Logs" : Date | Nom | Grade | Promo / retro / médaille | Remplie par
+  const SHEET_ONGLET_LOGS = 'Logs';
+  const SHEET_JSON_URL_LOGS = `https://opensheet.elk.sh/${SHEET_ID}/${encodeURIComponent(SHEET_ONGLET_LOGS)}`;
+
+  // Cache local de secours : uniquement utilisé si le Sheet est momentanément
+  // injoignable, pour ne jamais afficher un journal vide par erreur réseau.
+  const CLE_LOGS_CACHE = 'gdaLogsEffectifCache';
+  const CLE_LOGS_MASQUES_LOCAL = 'gdaLogsMasquesLocalement';
+
+  function cleLogLocale(log) {
+    return `${log.date || ''}|${log.matricule || ''}|${log.texte || ''}`;
+  }
+
+  function lireLogsMasquesLocalement() {
+    try { return new Set(JSON.parse(localStorage.getItem(CLE_LOGS_MASQUES_LOCAL) || '[]')); }
+    catch (e) { return new Set(); }
+  }
+
+  function lireCacheLogs() {
+    try {
+      const brut = localStorage.getItem(CLE_LOGS_CACHE);
+      const logs = brut ? JSON.parse(brut) : [];
+      return Array.isArray(logs) ? logs : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function ecrireCacheLogs(logs) {
+    try {
+      localStorage.setItem(CLE_LOGS_CACHE, JSON.stringify(logs.slice(0, 300)));
+    } catch (e) {
+      // Le cache est un simple confort ; une erreur ici n'est pas bloquante.
+    }
+  }
+
+  // Charge le journal complet depuis le Sheet (persistant, partagé). En cas
+  // d'échec réseau, retombe sur le dernier cache local connu pour éviter un
+  // écran vide, plutôt que de faire disparaître les entrées. Fusionne aussi
+  // avec le cache local même en cas de succès : si une entrée a été ajoutée
+  // localement mais que l'écriture côté Sheet a échoué (ex: action Apps
+  // Script manquante), elle reste visible et marquée "non synchronisée" au
+  // lieu de disparaître silencieusement au prochain chargement.
+  async function chargerLogsEffectif() {
+    try {
+      const reponse = await fetch(SHEET_JSON_URL_LOGS, { cache: 'no-store' });
+      if (!reponse.ok) throw new Error(`Statut HTTP ${reponse.status} pour l'onglet "${SHEET_ONGLET_LOGS}"`);
+      const lignes = await reponse.json();
+      const logsDistants = lignes
+        .map(ligne => ({
+          matricule: (ligne['Nom'] || '—').trim(),
+          grade: (ligne['Grade'] || '').trim(),
+          texte: (ligne['Promo / retro / médaille'] || '').trim(),
+          rempliPar: (ligne['Remplie par'] || '').trim(),
+          date: (ligne['Date'] || '').trim()
+        }))
+        .filter(l => l.texte.length > 0);
+
+      const clefDe = (l) => `${l.date}|${l.matricule}|${l.texte}`;
+      const clefsDistantes = new Set(logsDistants.map(clefDe));
+      const cache = lireCacheLogs();
+      const enAttente = cache
+        .filter(l => !clefsDistantes.has(clefDe(l)))
+        .map(l => ({ ...l, nonSynchronise: true }));
+
+      const masques = lireLogsMasquesLocalement();
+      const logs = [...enAttente, ...logsDistants]
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .filter(log => !masques.has(cleLogLocale(log)));
+      ecrireCacheLogs(logs);
+      return logs;
+    } catch (e) {
+      console.warn('Journal indisponible depuis le Sheet, utilisation du cache local :', e);
+      return lireCacheLogs();
+    }
+  }
+
+  // Ajoute une entrée au journal : écrite directement dans le Sheet (persiste
+  // pour tout le monde) via l'Apps Script existant. Le cache local est aussi
+  // mis à jour immédiatement pour un affichage instantané sans attendre un
+  // rechargement du Sheet. Retourne true/false selon que l'écriture côté
+  // Sheet a réellement réussi (utile pour prévenir l'utilisateur en cas
+  // d'échec silencieux, ex: action manquante côté Apps Script).
+  async function ajouterLogEffectif(matricule, texte, grade) {
+    const entree = {
+      matricule: matricule || '—',
+      grade: grade || '',
+      texte,
+      rempliPar: matriculeActif || '—',
+      date: new Date().toISOString()
+    };
+    const cache = lireCacheLogs();
+    cache.unshift(entree);
+    ecrireCacheLogs(cache);
+    try {
+      await appelerWebApp('ajouterLog', entree);
+      return true;
+    } catch (e) {
+      console.error('Le log n\'a PAS été écrit dans le Google Sheet (action "ajouterLog" manquante ou en erreur côté Apps Script) :', e);
+      return false;
+    }
+  }
+
+  function formaterDateLog(iso) {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    const jj = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${jj}/${mm} ${hh}:${min}`;
+  }
+
+  function medailleEstVide(v) {
+    return !v || v.toUpperCase() === 'N/A';
+  }
+
+  function echapperAttr(valeur) {
+    return String(valeur == null ? '' : valeur).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  }
+
+  async function rafraichirSite() {
+    const bouton = document.getElementById('btnRefreshCorner');
+    if (bouton) { bouton.disabled = true; bouton.classList.add('tourne'); }
+    try {
+      if (document.querySelector('#contenuLienMDC .effectif-table')) {
+        // Vue "Effectif MDC GDA" ouverte : ne recharge que le tableau.
+        await rafraichirTableauEffectif();
+      } else if (document.getElementById('classementListe')) {
+        // Vue "Classement" ouverte : ne recharge que le classement.
+        await dessinerClassementMDC();
+      } else if (document.getElementById('ongletAdminLogs')?.classList.contains('actif')) {
+        // Panneau Administration > Logs : ne recharge que la liste des logs.
+        await afficherLogsAdmin();
+      } else if (document.querySelector('.effectif-modal-box iframe')) {
+        // Document Google Sheet ouvert en fenêtre (Administration > Effectif) :
+        // recharge juste l'iframe.
+        const iframe = document.querySelector('.effectif-modal-box iframe');
+        iframe.src = iframe.src;
+      }
+      // Sur les autres vues (menu principal, règlement, matériel…), il n'y a
+      // rien de dynamique à recharger — on ne touche donc à rien.
+    } finally {
+      if (bouton) {
+        bouton.disabled = false;
+        setTimeout(() => bouton.classList.remove('tourne'), 400);
+      }
+    }
+  }
+
+  // === Listes fermées de valeurs autorisées (alignées sur le Google Sheet) ===
+  const GRADES_DISPONIBLES = [
+    'Lieutenant-colonel',
+    'Commandant',
+    'Vice-Commandant',
+    'Gérant Médecin',
+    'Co-Gérant Médecin',
+    'Médecin Sénior',
+    'Médecin Expérimenté',
+    'Médecin Junior'
+  ];
+  const RAPPORTS_DISPONIBLES = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'Exempter'];
+  const MEDAILLES_DISPONIBLES = ['N/A', 'Insigne Médecin'];
+
+  const COULEURS_GRADE = {
+    'grade-commandement': { bg: '#4a1414', fg: '#ff9c99' },
+    'grade-direction': { bg: '#16294a', fg: '#bcd8ff' },
+    '': { bg: '#20242c', fg: '#d7dde6' }
+  };
+  const COULEURS_RAPPORT = {
+    '': { bg: '#20242c', fg: '#d7dde6' },
+    'rapport-bas': { bg: '#4a1414', fg: '#ff9c99' },
+    'rapport-moyen': { bg: '#4a3414', fg: '#f3cc7d' },
+    'rapport-haut': { bg: '#173a26', fg: '#8fe0af' },
+    'rapport-exempte': { bg: '#0c0c0c', fg: '#cfd6e0' }
+  };
+  const COULEURS_MEDAILLE = {
+    vide: { bg: '#20242c', fg: '#8a9bbe' },
+    donnee: { bg: '#4a3b14', fg: '#f0d9a0' }
+  };
+
+  // === Ajout manuel d'un log (Promo / Rétro / Sanction / Départ / Médaille) ===
+  // Formulaire inspiré du modèle fourni ; réutilise le même onglet "Logs" et
+  // la même action Apps Script "ajouterLog" que le journal automatique — pas
+  // de nouvelle colonne côté Google Sheet, juste un texte mieux structuré.
+  const ACTIONS_LOG = ['Promotion', 'Rétrogradation', 'Départ', 'Médaille donnée', 'Médaille retirée'];
+
+  function classeActionLog(action) {
+    const a = (action || '').toLowerCase();
+    if (a.startsWith('promo')) return 'log-action-promotion';
+    if (a.startsWith('rétro') || a.startsWith('retro')) return 'log-action-retrogradation';
+    if (a.startsWith('sanction')) return 'log-action-sanction';
+    if (a.startsWith('départ') || a.startsWith('depart')) return 'log-action-depart';
+    if (a.startsWith('médaille') || a.startsWith('medaille')) return 'log-action-medaille';
+    return 'log-action-defaut';
+  }
+
+  // Le texte d'un log auto ou manuel suit toujours la forme "Action : reste".
+  // On en extrait juste le premier mot pour le badge coloré ; si le texte ne
+  // suit pas ce format (ancien log "UP rapport : ..."), pas de badge.
+  function decomposerTexteLog(texte) {
+    const m = /^([^:]+):\s*(.*)$/.exec(texte || '');
+    if (!m) return { action: null, reste: texte || '' };
+    return { action: m[1].trim(), reste: m[2].trim() };
+  }
+
+  function construireOptionsSelect(valeurs, valeurActuelle, obtenirCouleur) {
+    const actuelle = (valeurActuelle || '').trim();
+    const correspond = valeurs.some(v => v.toLowerCase() === actuelle.toLowerCase());
+    let html = '';
+    // Si la valeur actuelle (venant du Sheet) ne fait pas partie de la liste
+    // fermée, on l'ajoute quand même en premier pour ne rien écraser tant que
+    // personne n'a choisi une nouvelle valeur.
+    if (!correspond && actuelle) {
+      html += `<option value="${actuelle}" selected>${actuelle}</option>`;
+    }
+    html += valeurs.map(v => {
+      const selectionne = correspond && v.toLowerCase() === actuelle.toLowerCase();
+      const couleur = obtenirCouleur ? obtenirCouleur(v) : null;
+      const style = couleur ? ` style="background:${couleur.bg};color:${couleur.fg};"` : '';
+      return `<option value="${v}" ${selectionne ? 'selected' : ''}${style}>${v}</option>`;
+    }).join('');
+    return html;
+  }
+
+  function construireSelectGrade(valeurActuelle) {
+    const options = construireOptionsSelect(GRADES_DISPONIBLES, valeurActuelle, (v) => COULEURS_GRADE[classeGrade(v)]);
+    return `<select class="effectif-edit-input" data-champ="grade">${options}</select>`;
+  }
+
+  function construireSelectRapport(valeurActuelle) {
+    const options = construireOptionsSelect(RAPPORTS_DISPONIBLES, valeurActuelle, (v) => COULEURS_RAPPORT[classeRapport(v)]);
+    return `<select class="effectif-edit-input effectif-edit-input-num" data-champ="rapport">${options}</select>`;
+  }
+
+  function construireSelectMedaille(valeurActuelle) {
+    const options = construireOptionsSelect(MEDAILLES_DISPONIBLES, valeurActuelle, (v) => medailleEstVide(v) ? COULEURS_MEDAILLE.vide : COULEURS_MEDAILLE.donnee);
+    return `<select class="effectif-edit-input" data-champ="medaille">${options}</select>`;
+  }
+
+  // Options du champ "Résultat" du formulaire d'ajout de log, dépendantes de
+  // l'action choisie (grade pour Promo/Rétro, sanction pour Sanction, etc.).
+  function optionsResultatPourAction(action) {
+    if (action === 'Promotion' || action === 'Rétrogradation') return GRADES_DISPONIBLES;
+    if (action === 'Médaille donnée' || action === 'Médaille retirée') return MEDAILLES_DISPONIBLES.filter(v => v !== 'N/A');
+    return null; // Départ : pas de choix, valeur fixe
+  }
+
+  function reconstruireChampResultatLog() {
+    const actionSel = document.getElementById('logAjoutAction');
+    const zone = document.getElementById('logAjoutResultatZone');
+    if (!actionSel || !zone) return;
+    const action = actionSel.value;
+    const options = optionsResultatPourAction(action);
+    if (!options) {
+      zone.innerHTML = `<input type="text" id="logAjoutResultat" value="Départ" disabled>`;
+    } else {
+      zone.innerHTML = `<select id="logAjoutResultat">${options.map(v => `<option value="${v}">${v}</option>`).join('')}</select>`;
+    }
+  }
+
+  async function construireFormulaireAjoutLog() {
+    // Le menu déroulant "Nom" doit refléter l'effectif réel et à jour — pas
+    // une liste figée — donc on charge (ou réutilise) la liste courante.
+    if (!derniereListeEffectif.length) {
+      try { derniereListeEffectif = await chargerEffectifComplet(); } catch (e) { /* formulaire quand même affiché, dropdown vide */ }
+    }
+    const optionsNoms = derniereListeEffectif.map(l => `<option value="${echapperAttr(l.matricule)}" data-grade="${echapperAttr(l.grade)}">${l.matricule}</option>`).join('');
+
+    return `
+      <div class="log-add-form">
+        <select id="logAjoutNom" onchange="surChangementNomLog()">${optionsNoms || '<option value="">— aucun nom —</option>'}</select>
+        <select id="logAjoutAction" onchange="reconstruireChampResultatLog()">
+          ${ACTIONS_LOG.map(a => `<option value="${a}">${a}</option>`).join('')}
+        </select>
+        <span id="logAjoutResultatZone"></span>
+        <input type="text" id="logAjoutRaison" placeholder="Raison (optionnel)">
+        <button class="btn-cell-action enregistrer" onclick="soumettreAjoutLog()">Ajouter</button>
+      </div>
+      <div class="log-add-msg" id="logAjoutMsg"></div>
+    `;
+  }
+
+  function surChangementNomLog() {
+    // Rien à faire pour l'instant : le grade d'origine est relu depuis
+    // l'option sélectionnée au moment de la soumission.
+  }
+
+  async function soumettreAjoutLog() {
+    const selNom = document.getElementById('logAjoutNom');
+    const selAction = document.getElementById('logAjoutAction');
+    const resultatEl = document.getElementById('logAjoutResultat');
+    const raisonEl = document.getElementById('logAjoutRaison');
+    const bouton = document.querySelector('.log-add-form .btn-cell-action.enregistrer');
+    const msgEl = document.getElementById('logAjoutMsg');
+    if (!selNom || !selNom.value) {
+      if (msgEl) { msgEl.className = 'log-add-msg fail'; msgEl.textContent = 'Choisis un nom.'; }
+      return;
+    }
+
+    const nom = selNom.value;
+    const gradeOrigine = selNom.selectedOptions[0]?.dataset.grade || '';
+    const action = selAction.value;
+    const resultat = (resultatEl?.value || '').trim();
+    const raison = (raisonEl?.value || '').trim();
+
+    let texte = `${action} : ${resultat}`;
+    if (action === 'Promotion' || action === 'Rétrogradation') texte = `${action} : ${gradeOrigine} → ${resultat}`;
+    if (raison) texte += ` — Raison : ${raison}`;
+
+    if (bouton) { bouton.disabled = true; bouton.textContent = '…'; }
+    const ok = await ajouterLogEffectif(nom, texte, action === 'Promotion' || action === 'Rétrogradation' ? resultat : gradeOrigine);
+    if (bouton) { bouton.disabled = false; bouton.textContent = 'Ajouter'; }
+
+    if (msgEl) {
+      msgEl.className = `log-add-msg ${ok ? 'ok' : 'fail'}`;
+      msgEl.textContent = ok ? 'Log ajouté.' : "Écrit localement mais pas encore synchronisé côté Sheet (vérifie l'Apps Script).";
+    }
+    if (raisonEl) raisonEl.value = '';
+    setTimeout(() => afficherLogsAdmin(), 900);
+  }
+
+  // Matricules dont la ligne est actuellement ouverte en édition dans le
+  // tableau Effectif MDC GDA (global). Permet de rouvrir la bonne ligne après
+  // un re-rendu (auto-refresh, bascule Modifier/Annuler).
+  let lignesEnEdition = new Set();
+  let derniereListeEffectif = [];
+
+  function redessinerTableauEffectif() {
+    const tbody = document.querySelector('#contenuLienMDC .effectif-table tbody');
+    if (!tbody) return;
+    tbody.innerHTML = derniereListeEffectif.map(l => construireLigneTableau(l, effectifModeModifiable)).join('');
+  }
+
+  function basculerEditionLigne(matricule, ouvrir) {
+    if (ouvrir) {
+      lignesEnEdition.add(matricule);
+    } else {
+      lignesEnEdition.delete(matricule);
+    }
+    redessinerTableauEffectif();
+  }
+
+  function construireLigneTableau(l, modifiable) {
+    const medailleVide = medailleEstVide(l.medaille);
+
+    if (!modifiable) {
+      return `
+        <tr>
+          <td class="cell-matricule" data-label="Matricule">${l.matricule}</td>
+          <td data-label="Grade médical"><span class="grade-pill ${classeGrade(l.grade)}">${construireInsigneGrade(l.grade)}${l.grade || '—'}</span></td>
+          <td class="cell-dim" data-label="Steam ID">${l.steamId || '—'}</td>
+          <td data-label="Rapport"><span class="rapport-pill ${classeRapport(l.rapport)}">${l.rapport || '0'}</span></td>
+          <td data-label="Médaille"><span class="medaille-pill ${medailleVide ? 'medaille-vide' : ''}">${l.medaille || 'N/A'}</span></td>
+        </tr>
+      `;
+    }
+
+    const enEdition = lignesEnEdition.has(l.matricule);
+
+    if (!enEdition) {
+      // Ligne en lecture (double vérification) : les valeurs sont affichées
+      // normalement, avec un bouton « Modifier » qui bascule la ligne en édition.
+      return `
+        <tr>
+          <td class="cell-matricule" data-label="Matricule">${l.matricule}</td>
+          <td data-label="Grade médical"><span class="grade-pill ${classeGrade(l.grade)}">${construireInsigneGrade(l.grade)}${l.grade || '—'}</span></td>
+          <td class="cell-dim" data-label="Steam ID">${l.steamId || '—'}</td>
+          <td data-label="Rapport"><span class="rapport-pill ${classeRapport(l.rapport)}">${l.rapport || '0'}</span></td>
+          <td data-label="Médaille"><span class="medaille-pill ${medailleVide ? 'medaille-vide' : ''}">${l.medaille || 'N/A'}</span></td>
+          <td class="cell-action" data-label="Action"><button class="btn-effectif-modifier" onclick="basculerEditionLigne('${l.matricule}', true)">Modifier</button></td>
+        </tr>
+      `;
+    }
+
+    // Ligne en édition (double vérification uniquement) : grade, rapport et
+    // médaille passent en menus déroulants à valeurs fermées ; le Steam ID
+    // reste affiché en lecture seule (non concerné par cette édition rapide).
+    return `
+      <tr data-matricule="${l.matricule}" data-grade-origine="${l.grade || ''}" data-rapport-origine="${l.rapport || ''}" data-medaille-origine="${medailleVide ? '' : l.medaille}">
+        <td class="cell-matricule" data-label="Matricule">${l.matricule}</td>
+        <td data-label="Grade médical">${construireSelectGrade(l.grade)}</td>
+        <td class="cell-dim" data-label="Steam ID">${l.steamId || '—'}</td>
+        <td data-label="Rapport">${construireSelectRapport(l.rapport)}</td>
+        <td data-label="Médaille">${construireSelectMedaille(medailleVide ? 'N/A' : l.medaille)}</td>
+        <td class="cell-action cell-action-double" data-label="Action">
+          <button class="btn-effectif-save" onclick="enregistrerLigneEffectif(this)">Enregistrer</button>
+          <button class="btn-effectif-annuler" onclick="basculerEditionLigne('${l.matricule}', false)">Annuler</button>
+        </td>
+      </tr>
+    `;
+  }
+
+  async function enregistrerLigneEffectif(bouton) {
+    const tr = bouton.closest('tr');
+    if (!tr) return;
+    const matricule = tr.getAttribute('data-matricule');
+    const gradeOrigine = tr.getAttribute('data-grade-origine') || '';
+    const rapportOrigine = tr.getAttribute('data-rapport-origine') || '';
+    const medailleOrigine = tr.getAttribute('data-medaille-origine') || '';
+    const champs = {};
+    tr.querySelectorAll('[data-champ]').forEach((champ) => {
+      champs[champ.dataset.champ] = (champ.value || '').trim();
+    });
+
+    const texteOriginal = bouton.textContent;
+    bouton.disabled = true;
+    bouton.textContent = '…';
+
+    try {
+      await envoyerMiseAJourEffectif(matricule, champs);
+
+      // Journalisation : un "up" = le rapport augmente (valeur numérique
+      // uniquement — "Exempter" n'est pas comptabilisé comme un up) ; une
+      // médaille "donnée" = le champ médaille passe à une valeur non vide ;
+      // un changement de grade = promotion ou rétrogradation selon la
+      // hiérarchie définie dans GRADES_DISPONIBLES (du plus haut au plus bas).
+      const gradeApres = (champs.grade || '').trim();
+      let unLogAEchoue = false;
+      if (gradeApres && gradeOrigine && gradeApres.toLowerCase() !== gradeOrigine.toLowerCase()) {
+        const indexAvant = GRADES_DISPONIBLES.findIndex(g => g.toLowerCase() === gradeOrigine.toLowerCase());
+        const indexApres = GRADES_DISPONIBLES.findIndex(g => g.toLowerCase() === gradeApres.toLowerCase());
+        const estPromotion = indexAvant !== -1 && indexApres !== -1 ? indexApres < indexAvant : true;
+        const libelle = estPromotion ? 'Promotion' : 'Rétrogradation';
+        const ok = await ajouterLogEffectif(matricule, `${libelle} : ${gradeOrigine} → ${gradeApres}`, gradeApres);
+        if (!ok) unLogAEchoue = true;
+      }
+
+      const rapportAvant = Number(rapportOrigine);
+      const rapportApres = Number(champs.rapport);
+      if (!isNaN(rapportAvant) && !isNaN(rapportApres) && rapportApres > rapportAvant) {
+        const ok = await ajouterLogEffectif(matricule, `UP rapport : ${rapportAvant} → ${rapportApres}`, gradeApres || gradeOrigine);
+        if (!ok) unLogAEchoue = true;
+      }
+      const medailleApres = (champs.medaille || '').trim();
+      const medailleOrigineTrim = medailleOrigine.trim();
+      if (!medailleEstVide(medailleApres) && medailleApres.toLowerCase() !== medailleOrigineTrim.toLowerCase()) {
+        const ok = await ajouterLogEffectif(matricule, `Médaille donnée : ${medailleApres}`, gradeApres || gradeOrigine);
+        if (!ok) unLogAEchoue = true;
+      } else if (medailleEstVide(medailleApres) && !medailleEstVide(medailleOrigineTrim)) {
+        const ok = await ajouterLogEffectif(matricule, `Médaille retirée : ${medailleOrigineTrim}`, gradeApres || gradeOrigine);
+        if (!ok) unLogAEchoue = true;
+      }
+
+      // Met à jour le cache local pour un affichage immédiat, sans attendre
+      // le prochain rafraîchissement automatique.
+      const ligne = derniereListeEffectif.find(x => x.matricule === matricule);
+      if (ligne) {
+        if ('grade' in champs) ligne.grade = champs.grade;
+        if ('rapport' in champs) ligne.rapport = champs.rapport;
+        if ('medaille' in champs) ligne.medaille = champs.medaille;
+      }
+
+      bouton.textContent = unLogAEchoue ? 'Enregistré (journal ⚠)' : 'Enregistré ✓';
+      setTimeout(() => {
+        lignesEnEdition.delete(matricule);
+        redessinerTableauEffectif();
+      }, unLogAEchoue ? 2200 : 900);
+    } catch (e) {
+      console.error('Erreur de mise à jour de l\'effectif :', e);
+      bouton.textContent = 'Échec';
+      setTimeout(() => {
+        bouton.textContent = texteOriginal;
+        bouton.disabled = false;
+      }, 2000);
+    }
+  }
+
+  async function rafraichirTableauEffectif() {
+    // Ne fait rien si le tableau n'est plus affiché (l'utilisateur a changé de vue).
+    const tbody = document.querySelector('#contenuLienMDC .effectif-table tbody');
+    const compteur = document.getElementById('effectifCount');
+    if (!tbody) {
+      arreterAutoRefreshEffectif();
+      return;
+    }
+    try {
+      const lignes = await chargerEffectifComplet();
+      derniereListeEffectif = lignes;
+      tbody.innerHTML = lignes.map(l => construireLigneTableau(l, effectifModeModifiable)).join('');
+      if (compteur) compteur.textContent = lignes.length + ' membre' + (lignes.length > 1 ? 's' : '');
+    } catch (e) {
+      // En cas d'échec ponctuel du rafraîchissement, on garde l'affichage existant
+      // et on retentera au prochain cycle plutôt que de casser la vue.
+      console.warn('Rafraîchissement de l\'effectif impossible pour le moment :', e);
+    }
+  }
+
+  let effectifModeModifiable = false; // mémorise le mode du tableau actuellement affiché, pour l'auto-refresh
+
+  async function afficherEffectifRecree(modifiable) {
+    modifiable = !!modifiable;
+    effectifModeModifiable = modifiable;
+    lignesEnEdition = new Set();
+    const zone = document.getElementById('contenuLienMDC');
+    if (!zone) return;
+    document.body.classList.add('lien-ouvert');
+    arreterAutoRefreshEffectif();
+
+    zone.innerHTML = `
+      <div class="effectif-wrap">
+        <div class="effectif-header">
+          <h2>Effectif MDC GDA</h2>
+          <span class="effectif-count" id="effectifCount">Chargement…</span>
+        </div>
+        ${modifiable ? '<div class="effectif-note">Vous pouvez modifier le grade, le rapport et la médaille via le bouton « Modifier » d\'une ligne.</div>' : ''}
+        <div class="effectif-loading" id="effectifLoading">Chargement de l'effectif…</div>
+      </div>
+    `;
+
+    try {
+      const lignes = await chargerEffectifComplet();
+      derniereListeEffectif = lignes;
+      const compteur = document.getElementById('effectifCount');
+      const loading = document.getElementById('effectifLoading');
+      if (compteur) compteur.textContent = lignes.length + ' membre' + (lignes.length > 1 ? 's' : '');
+      if (loading) loading.remove();
+
+      const wrap = zone.querySelector('.effectif-wrap');
+      if (wrap) {
+        wrap.insertAdjacentHTML('beforeend', `
+          <table class="effectif-table ${modifiable ? 'effectif-table-modifiable' : 'effectif-table-lecture'}">
+            <thead>
+              <tr>
+                <th>Matricule</th>
+                <th>Grade</th>
+                <th>Steam ID</th>
+                <th>Rapport</th>
+                <th>Médaille</th>
+                ${modifiable ? '<th>Action</th>' : ''}
+              </tr>
+            </thead>
+            <tbody>
+              ${lignes.map(l => construireLigneTableau(l, modifiable)).join('')}
+            </tbody>
+          </table>
+        `);
+      }
+
+      // Rafraîchit automatiquement le tableau tant qu'il reste affiché, pour que
+      // toute modification faite dans le Google Sheet apparaisse sans avoir à
+      // rouvrir la page ou re-saisir un matricule.
+      arreterAutoRefreshEffectif();
+      intervalleAutoRefreshEffectif = setInterval(rafraichirTableauEffectif, DUREE_AUTO_REFRESH_EFFECTIF);
+    } catch (e) {
+      console.error('Erreur de chargement de l\'effectif :', e);
+      zone.innerHTML = `
+        <div class="effectif-wrap">
+          <div class="effectif-loading">Impossible de charger l'effectif pour le moment.</div>
+        </div>
+      `;
+    }
+  }
+
+  const REGLEMENT_GDA = [
+    'Avant de pouvoir administrer des soins aux blessés, les médecins sont tenus de les évacuer du champ de tir. <span class="reglement-highlight">(A couvert)</span>',
+    'Il est défendu d\'administrer des soins aux blessés sur le terrain de combat, vous devez vous mettre à l\'écart/mettre une couverture (Bouclier/Fortification) devant la personne avant d\'entamer le traitement/réanimation du patient.',
+    'Il faut donner la priorité aux soins pour les membres les plus atteints, il faut soigner les patients selon l\'urgence de leur état.',
+    'Il est impératif pour les médecins de secourir les blessés, mais ils doivent <span class="reglement-highlight">d\'abord veiller à leur propre sécurité avant de s\'occuper des blessés.</span>',
+    'Il est interdit de manipuler un patient présentant des blessures ouvertes sans gants opératoires. <span class="reglement-highlight">(HRP la plupart des PM ont des gants)</span>',
+    'L\'utilisation du défibrillateur est limitée à trois fois au maximum par individu.',
+    'Vous devez respecter le RP donc pas de réanimation si celle-ci et létal (Un otage abattu ou scène rp le demandant) <span class="reglement-highlight">(Les réanimations des morts par SCP ont directement été bloqué par le serveur)</span>',
+    'Il est nécessaire de faire un compte rendu après chaque affrontement dans le canal rapport-mdc.'
+  ];
+
+  function afficherReglementGDA() {
+    const zone = document.getElementById('contenuLienMDC');
+    if (!zone) return;
+    document.body.classList.add('lien-ouvert');
+    arreterAutoRefreshEffectif();
+
+    zone.innerHTML = `
+      <div class="reglement-wrap">
+        <div class="reglement-header">
+          <h2>Règlement GDA</h2>
+        </div>
+        <ol class="reglement-list">
+          ${REGLEMENT_GDA.map(regle => `<li>${regle}</li>`).join('')}
+        </ol>
+      </div>
+    `;
+  }
+
+  const MATERIEL_MDC_GDA = [
+    {
+      titre: 'Trousses de premiers secours',
+      description: "Un ensemble de matériaux et d'outils utilisés pour prodiguer des soins d'urgence à une personne malade ou blessée.",
+      composition: [
+        'Des gants jetables et un masque de bouche-à-bouche ;',
+        'Un thermomètre ;',
+        'Des ciseaux, une pince à écharde et des épingles de sûreté ;',
+        'Des compresses stériles individuelles, en plusieurs tailles ;',
+        'Un rouleau de sparadrap ;',
+        'Des bandes extensibles et un bandage triangulaire (pour maintenir un bras en écharpe) ;',
+        'Des pansements adhésifs prédécoupés de différentes tailles ;',
+        'Une poche de froid instantané ;',
+        "Un coussin hémostatique d'urgence et des mèches hémostatiques (pour stopper les saignements de nez et dans la bouche) ;",
+        'Une couverture de survie ;',
+        'Des compresses antiseptiques ;'
+      ]
+    },
+    {
+      titre: 'Défibrillateur',
+      description: "Est un dispositif médical qui aide à la réanimation de victimes d'arrêt cardiaque. Accompagné d'un massage cardiaque, le défibrillateur contribue à augmenter significativement les chances de survie.",
+      utilisation: "Le Défibrillateur automatisé externe (DAE) s'utilise en parallèle du massage cardiaque. Il ne le remplace pas ! Les deux sont complémentaires pour aider la victime. S'il y en a un à proximité de la victime, il faut l'utiliser tout de suite."
+    },
+    {
+      titre: 'Kit de chirurgie de campagne',
+      description: "Kit d'instruments chirurgicaux destiné à réaliser des opérations d'urgence sur le terrain.",
+      utilisation: "En cas de blessure grave, les médecins peuvent effectuer des interventions chirurgicales d'urgence, comme des sutures ou des amputations en première ligne avant l'évacuation.",
+      composition: [
+        'Scalpels.',
+        'Lames de scalpel.',
+        'Manches de scalpel.',
+        'Couteaux chirurgicaux.',
+        'Ciseaux de chirurgie.',
+        'Micro-ciseaux de chirurgie.',
+        'Pinces chirurgicales.',
+        'Pinces endoscopiques.'
+      ]
+    }
+  ];
+
+  function afficherMaterielMenu() {
+    const zone = document.getElementById('contenuLienMDC');
+    if (!zone) return;
+    document.body.classList.add('lien-ouvert');
+    arreterAutoRefreshEffectif();
+
+    zone.innerHTML = `
+      <div class="materiel-wrap">
+        <div class="materiel-header">
+          <h2>Matériel MDC GDA</h2>
+        </div>
+        <div class="materiel-menu">
+          ${MATERIEL_MDC_GDA.map((m, i) => `<button class="btn-materiel-item" onclick="afficherMaterielItem(${i})">${m.titre}</button>`).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  function afficherMaterielItem(index) {
+    const item = MATERIEL_MDC_GDA[index];
+    const zone = document.getElementById('contenuLienMDC');
+    if (!item || !zone) return;
+
+    const compositionHtml = item.composition && item.composition.length
+      ? `
+        <div class="materiel-section">
+          <div class="materiel-section-titre">Composition</div>
+          <ul class="materiel-liste">
+            ${item.composition.map(c => `<li>${c}</li>`).join('')}
+          </ul>
+        </div>
+      `
+      : '';
+
+    const utilisationHtml = item.utilisation
+      ? `
+        <div class="materiel-section">
+          <div class="materiel-section-titre">Utilisation</div>
+          <p class="materiel-texte">${item.utilisation}</p>
+        </div>
+      `
+      : '';
+
+    zone.innerHTML = `
+      <div class="materiel-wrap">
+        <div class="materiel-header">
+          <h2>Matériel MDC GDA</h2>
+          <button class="btn-materiel-retour" onclick="afficherMaterielMenu()">← Retour</button>
+        </div>
+        <div class="materiel-card">
+          <div class="materiel-titre">${item.titre}</div>
+          <div class="materiel-section">
+            <div class="materiel-section-titre">Description</div>
+            <p class="materiel-texte">${item.description}</p>
+          </div>
+          ${utilisationHtml}
+          ${compositionHtml}
+        </div>
+      </div>
+    `;
+  }
+
+  // URL du vrai document Google Sheet (accessible uniquement via Administration)
+  const URL_EFFECTIF_REEL = 'https://docs.google.com/spreadsheets/d/1dzJuItFv1XKjbhuyz-qkrWLdWkA-T1aY2vDWmCw36Ew/edit?usp=sharing';
+
+  function marquerOngletAdminActif(idOnglet) {
+    ['ongletAdminEffectif', 'ongletAdminLogs', 'ongletAdminPermission'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('actif', id === idOnglet);
+    });
+  }
+
+  // Construit la vue Administration. Les 3 boutons ne sont plus affichés ici :
+  // ils sont désormais fixes en haut de la page (voir #adminTopbarFixe dans le
+  // <body>), grâce à la classe "mode-admin" ajoutée ci-dessous.
+  function afficherAdministration() {
+    const zone = document.getElementById('contenuLienMDC');
+    if (!zone) return;
+    document.body.classList.add('lien-ouvert');
+    document.body.classList.add('mode-admin');
+    arreterAutoRefreshEffectif();
+
+    // Chaque onglet de la barre fixe n'est visible que si le matricule
+    // connecté a la permission correspondante (ou 'administration', qui
+    // donne accès à tout). Voir aAccesOngletAdmin*() plus haut.
+    const ongletEffectif = document.getElementById('ongletAdminEffectif');
+    const ongletLogs = document.getElementById('ongletAdminLogs');
+    const ongletPermission = document.getElementById('ongletAdminPermission');
+    if (ongletEffectif) ongletEffectif.style.display = aAccesOngletAdminEffectif(matriculeActif) ? '' : 'none';
+    if (ongletLogs) ongletLogs.style.display = aAccesOngletAdminLogs(matriculeActif) ? '' : 'none';
+    if (ongletPermission) ongletPermission.style.display = aAccesOngletAdminPermission(matriculeActif) ? '' : 'none';
+
+    zone.innerHTML = `
+      <div class="admin-wrap" id="adminWrapBox">
+        <div id="adminContenu" class="admin-contenu">
+          <div class="admin-placeholder">Sélectionnez une option ci-dessus.</div>
+        </div>
+      </div>
+    `;
+
+    // Ouvre automatiquement le premier onglet auquel la personne a accès,
+    // plutôt que de laisser un panneau vide si elle n'a qu'une seule permission.
+    if (aAccesOngletAdminEffectif(matriculeActif)) afficherEffectifReelAdmin();
+    else if (aAccesOngletAdminLogs(matriculeActif)) afficherLogsAdmin();
+    else if (aAccesOngletAdminPermission(matriculeActif)) afficherPermissionsAdmin();
+  }
+
+  function afficherEffectifReelAdmin() {
+    if (!aAccesOngletAdminEffectif(matriculeActif)) return;
+    marquerOngletAdminActif('ongletAdminEffectif');
+    arreterAutoRefreshEffectif();
+    ouvrirModaleEffectifReel();
+  }
+
+  function ouvrirModaleEffectifReel() {
+    fermerModaleEffectifReel();
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'effectif-modal-backdrop';
+    backdrop.id = 'effectifModalBackdrop';
+    backdrop.innerHTML = `
+      <div class="effectif-modal-box" role="dialog" aria-modal="true">
+        <div class="effectif-modal-header">
+          <h2>Effectif MDC GDA</h2>
+          <button class="effectif-modal-close" onclick="fermerModaleEffectifReel()">Fermer</button>
+        </div>
+        <div class="iframe-wrap">
+          <iframe src="${URL_EFFECTIF_REEL}" allow="fullscreen" allowfullscreen></iframe>
+        </div>
+      </div>
+    `;
+    // Ferme la fenêtre si on clique en dehors de la boîte centrale
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) fermerModaleEffectifReel();
+    });
+
+    document.body.appendChild(backdrop);
+  }
+
+  function fermerModaleEffectifReel() {
+    const backdrop = document.getElementById('effectifModalBackdrop');
+    if (backdrop) backdrop.remove();
+  }
+
+  async function afficherLogsAdmin() {
+    if (!aAccesOngletAdminLogs(matriculeActif)) return;
+    marquerOngletAdminActif('ongletAdminLogs');
+    const contenu = document.getElementById('adminContenu');
+    const boiteAdmin = document.getElementById('adminWrapBox');
+    if (!contenu) return;
+    arreterAutoRefreshEffectif();
+    if (boiteAdmin) boiteAdmin.classList.remove('admin-wrap-large');
+
+    contenu.innerHTML = `<div class="admin-liste-titre">Journal — UP de rapport &amp; médailles</div><div class="admin-liste-vide">Chargement…</div>`;
+
+    const [logs, formulaireAjout] = await Promise.all([chargerLogsEffectif(), construireFormulaireAjoutLog()]);
+
+    contenu.innerHTML = `
+      <div class="admin-liste-titre">Journal — UP de rapport &amp; médailles (${logs.length}) <button class="log-delete-btn" style="display:inline-block; margin-left:10px;" onclick="supprimerTousLogsLocalement()">Supprimer tous les logs localement</button></div>
+      ${formulaireAjout}
+      <ul class="admin-liste" id="adminLogsListe">
+        ${logs.length ? logs.map(l => {
+          const { action, reste } = decomposerTexteLog(l.texte);
+          const badge = action ? `<span class="log-action-badge ${classeActionLog(action)}">${action}</span>` : '';
+          const initiale = (l.matricule || '?').trim().charAt(0).toUpperCase() || '?';
+          return `
+          <li class="log-entry" onclick="basculerLogOuvert(this, event)" data-date="${echapperAttr(l.date)}" data-nom="${echapperAttr(l.matricule)}" data-texte="${echapperAttr(l.texte)}" data-non-synchronise="${l.nonSynchronise ? 'true' : 'false'}">
+            <div class="log-entry-main">
+              <span class="log-avatar" aria-hidden="true">${initiale}</span>
+              <div class="log-details">
+                <span class="log-texte"><strong>${l.matricule}</strong>${l.grade ? ` (${l.grade})` : ''} — ${badge}${reste}${l.nonSynchronise ? ' <span class="log-non-sync" title="Écriture Google Sheet en échec — vérifie l\'action \'ajouterLog\' côté Apps Script">⚠ non synchronisé</span>' : ''}</span>
+                <span class="log-meta">${l.rempliPar ? `par ${l.rempliPar} · ` : ''}${formaterDateLog(l.date)}</span>
+              </div>
+              <span class="log-expand" aria-hidden="true">⌄</span>
+            </div>
+            <button class="log-delete-btn" onclick="event.stopPropagation(); supprimerLogClique(this)">${l.nonSynchronise ? 'Supprimer localement' : 'Supprimer'}</button>
+          </li>
+        `;
+        }).join('') : '<li class="admin-liste-vide">Rien pour le moment.</li>'}
+      </ul>
+    `;
+    reconstruireChampResultatLog();
+  }
+
+  // === Panneau Administration > Permission ===
+  // Le backend (DoubleVerif.gs) n'expose pas de liste globale de toutes les
+  // permissions de tout le monde — seulement une lecture/écriture PAR
+  // matricule (aPermissionDoubleVerif_ / definirPermissionDoubleVerif_, une
+  // ligne "DoubleVerifSite" par personne). Le panneau fonctionne donc en
+  // mode recherche : on tape un matricule, on charge SES permissions
+  // actuelles, on coche/décoche, puis on enregistre. Pour ajouter une
+  // NOUVELLE fonction protégée, ajoute-la simplement dans FONCTIONS_PERMISSION
+  // (plus haut dans le fichier) : elle apparaîtra ici automatiquement.
+  let matriculeEnEditionPermission = '';
+
+  async function afficherPermissionsAdmin() {
+    if (!aAccesOngletAdminPermission(matriculeActif)) return;
+    marquerOngletAdminActif('ongletAdminPermission');
+    const contenu = document.getElementById('adminContenu');
+    const boiteAdmin = document.getElementById('adminWrapBox');
+    if (!contenu) return;
+    arreterAutoRefreshEffectif();
+    if (boiteAdmin) boiteAdmin.classList.remove('admin-wrap-large');
+
+    contenu.innerHTML = `
+      <div class="admin-liste-titre">Permission</div>
+      <div class="admin-liste-vide" style="margin-bottom:14px;">Cherche un matricule pour voir et modifier ses fonctions activées. Les grades Lieutenant-Colonel, Commandant, Vice-Commandant, Gérant Médecin et Co-Gérant Médecin ont toujours accès à tout, automatiquement (géré côté serveur, indépendamment des cases ci-dessous).</div>
+      <div class="rapport-validation" style="margin-bottom:14px;">
+        <div class="rapport-validation-head">Rechercher un matricule</div>
+        <div class="rapport-validation-item">
+          <div class="log-add-form" style="margin:0;">
+            <input type="text" id="permissionMatriculeRecherche" placeholder="matricule" value="${echapperAttr(matriculeEnEditionPermission)}">
+            <button class="btn-cell-action enregistrer" onclick="chargerPermissionsMatricule()">Charger</button>
+          </div>
+        </div>
+      </div>
+      <div id="permissionZoneDroits"></div>
+    `;
+
+    if (matriculeEnEditionPermission) {
+      chargerPermissionsMatricule();
+    }
+  }
+
+  async function chargerPermissionsMatricule() {
+    const champ = document.getElementById('permissionMatriculeRecherche');
+    const matricule = (champ?.value || '').trim().toLowerCase();
+    const zone = document.getElementById('permissionZoneDroits');
+    if (!matricule) { if (zone) zone.innerHTML = ''; return; }
+    matriculeEnEditionPermission = matricule;
+    if (!zone) return;
+
+    zone.innerHTML = '<div class="admin-liste-vide">Chargement…</div>';
+    try {
+      const droits = await lireDroitsMatricule(matricule);
+      zone.innerHTML = construireBlocDroitsMatricule(matricule, droits);
+    } catch (erreur) {
+      zone.innerHTML = `<div class="admin-liste-vide">Impossible de charger les permissions. Vérifie que l'action 'lireDoubleVerifSite' est bien déployée côté Apps Script.</div>`;
+    }
+  }
+
+  function construireBlocDroitsMatricule(matricule, droits) {
+    return `
+      <div class="rapport-validation">
+        <div class="rapport-validation-head">Fonctions de ${echapperHtml(matricule)}</div>
+        <div class="rapport-validation-item">
+          ${FONCTIONS_PERMISSION.map((f) => {
+            const actif = droits[f.cle] === true;
+            return `
+              <label style="display:flex; align-items:flex-start; gap:8px; margin-top:10px; font:600 12px 'JetBrains Mono', monospace; color:#dbe9f0;">
+                <input type="checkbox" id="permissionCase_${f.cle}" ${actif ? 'checked' : ''}>
+                <span>${f.label}<br><span style="font-weight:400; color:#9fb4bd; text-transform:none; letter-spacing:0;">${f.description}</span></span>
+              </label>
+            `;
+          }).join('')}
+          <div style="margin-top:14px;">
+            <button class="rapport-validation-btn" onclick="enregistrerPermissionsMatricule('${echapperAttr(matricule)}')">Enregistrer</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  async function enregistrerPermissionsMatricule(matricule) {
+    const permissions = {};
+    FONCTIONS_PERMISSION.forEach((f) => {
+      const case_ = document.getElementById(`permissionCase_${f.cle}`);
+      if (case_ && !case_.disabled) permissions[f.cle] = case_.checked;
+    });
+    try {
+      await enregistrerDroitsMatricule(matricule, permissions);
+      chargerPermissionsMatricule();
+    } catch (erreur) {
+      alert(erreur.message || "Impossible d'enregistrer ces permissions pour l'instant. Vérifie que l'action 'majDoubleVerifSite' est bien déployée côté Apps Script.");
+    }
+  }
+
+  // Masque seulement le journal dans ce navigateur. Le Google Sheet reste intact.
+  function supprimerTousLogsLocalement() {
+    if (!confirm('Masquer tous les logs sur cet appareil ? Le Google Sheet ne sera pas modifié.')) return;
+    const masques = lireLogsMasquesLocalement();
+    lireCacheLogs().forEach(log => masques.add(cleLogLocale(log)));
+    localStorage.setItem(CLE_LOGS_MASQUES_LOCAL, JSON.stringify([...masques]));
+    localStorage.removeItem(CLE_LOGS_CACHE);
+    afficherLogsAdmin();
+  }
+
+  // Clique sur une entrée du journal : révèle/masque son bouton "Supprimer".
+  // Une seule entrée ouverte à la fois pour rester lisible.
+  function basculerLogOuvert(li, event) {
+    if (event && event.target.closest('.log-delete-btn')) return;
+    const dejaOuverte = li.classList.contains('log-ouvert');
+    document.querySelectorAll('#adminLogsListe .log-entry.log-ouvert').forEach(el => el.classList.remove('log-ouvert'));
+    if (!dejaOuverte) li.classList.add('log-ouvert');
+  }
+
+  async function supprimerLogClique(bouton) {
+    const li = bouton.closest('.log-entry');
+    if (!li) return;
+    const estNonSynchronise = li.dataset.nonSynchronise === 'true';
+    const confirmation = estNonSynchronise
+      ? 'Supprimer ce log non synchronisé de cet appareil ? Il n’est pas présent dans Google Sheet.'
+      : 'Supprimer définitivement cette ligne du journal ?';
+    if (!confirm(confirmation)) return;
+
+    const date = li.dataset.date;
+    const nom = li.dataset.nom;
+    const texte = li.dataset.texte;
+
+    bouton.disabled = true;
+    bouton.textContent = '…';
+    try {
+      // Un log non synchronisé n'existe que dans le cache de ce navigateur :
+      // aucun appel Google Sheet n'est nécessaire (ni possible) pour l'effacer.
+      if (!estNonSynchronise) {
+        await appelerWebApp('supprimerLog', { date, matricule: nom, texte });
+      }
+      const cache = lireCacheLogs().filter(l => !(l.date === date && l.matricule === nom && l.texte === texte));
+      ecrireCacheLogs(cache);
+      afficherLogsAdmin();
+    } catch (e) {
+      console.error('Suppression du log impossible :', e);
+      bouton.disabled = false;
+      bouton.textContent = 'Échec — réessayer';
+      bouton.title = e.message || '';
+    }
+  }
+
+  // === Salon Rapport MDC : l'identité est toujours celle de la session active. ===
+  const CLE_RAPPORTS_MDC_CACHE = 'gdaRapportsMdcCache';
+  const CLE_RAPPORTS_MASQUES_LOCAL = 'gdaRapportsMdcMasquesLocalement';
+
+  function lireRapportsMasquesLocalement() {
+    try { return new Set(JSON.parse(localStorage.getItem(CLE_RAPPORTS_MASQUES_LOCAL) || '[]')); }
+    catch (e) { return new Set(); }
+  }
+
+  function rapportEstMasqueLocalement(rapport) {
+    return lireRapportsMasquesLocalement().has(String(rapport.id || ''));
+  }
+
+  function masquerRapportLocalement(id, bouton) {
+    if (!confirm('Masquer ce rapport sur cet appareil ? Il restera dans le Google Sheet.')) return;
+    const masques = lireRapportsMasquesLocalement();
+    masques.add(String(id));
+    localStorage.setItem(CLE_RAPPORTS_MASQUES_LOCAL, JSON.stringify([...masques]));
+    const ligne = bouton && bouton.closest('.rapport-validation-item');
+    if (ligne) ligne.remove();
+  }
+
+  function boutonMasquerRapport(rapport) {
+    return `<div class="rapport-validation-actions"><button class="rapport-validation-btn" style="border-color:#e38a83; background:rgba(160,49,49,.2); color:#ffd0cc;" onclick="masquerRapportLocalement('${echapperAttr(rapport.id)}', this)">Masquer localement</button></div>`;
+  }
+
+  function lireRapportsMdc() {
+    try {
+      const rapports = JSON.parse(localStorage.getItem(CLE_RAPPORTS_MDC_CACHE) || '[]');
+      return Array.isArray(rapports) ? rapports : [];
+    } catch { return []; }
+  }
+
+  function ecrireRapportsMdc(rapports) {
+    localStorage.setItem(CLE_RAPPORTS_MDC_CACHE, JSON.stringify(rapports.slice(0, 200)));
+  }
+
+  function echapperHtml(valeur) {
+    return String(valeur ?? '').replace(/[&<>'"]/g, caractere => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+    }[caractere]));
+  }
+
+  function formaterDateRapport(date) {
+    try {
+      return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(date));
+    } catch { return date || '—'; }
+  }
+
+  // === Classement MDC GDA (réanimations) ===
+  // Calcule le classement à partir des rapports MDC validés (colonne
+  // "réanimations" de chaque rapport, additionnée par matricule). Le backend
+  // expose cette agrégation via l'action 'classementReanimations' pour ne pas
+  // avoir à retélécharger tous les rapports individuels côté client.
+  // Actions Web App attendues côté Apps Script :
+  //   - 'classementReanimations' { validateur } -> { ok, classement: [{ matricule, grade, totalReanimations }, ...] }
+  //   - 'reinitialiserClassement' { validateur } -> { ok } — remet tous les compteurs à 0
+  function aAccesReinitialiserClassement(matricule) {
+    return aPermission(matricule, 'gererClassement');
+  }
+
+  async function afficherClassementMDC() {
+    const zone = document.getElementById('contenuLienMDC');
+    if (!zone) return;
+    document.body.classList.add('lien-ouvert');
+    arreterAutoRefreshEffectif();
+
+    const peutReinitialiser = aAccesReinitialiserClassement(matriculeActif);
+
+    zone.innerHTML = `
+      <section class="rapport-mdc-wrap">
+        <header class="rapport-mdc-header">
+          <div>
+            <div class="rapport-mdc-kicker">Espace GDA</div>
+            <h2>🏆 Classement MDC GDA</h2>
+            <p class="rapport-mdc-subtitle">Nombre de réanimations effectuées, tout l'effectif confondu.</p>
+          </div>
+          <div class="rapport-mdc-stats"><div class="rapport-stat"><strong id="classementTotalMembres">0</strong><span>Membres</span></div></div>
+        </header>
+        ${peutReinitialiser ? `
+          <div style="display:flex; gap:8px; margin-top:16px; flex-wrap:wrap;">
+            <button class="rapport-validation-btn" style="border-color:#e38a83; background:rgba(160,49,49,.2); color:#ffd0cc;" onclick="reinitialiserClassementMDC()">Réinitialiser le classement</button>
+          </div>
+        ` : ''}
+        <div class="rapport-mdc-grid" style="grid-template-columns: minmax(0, 1fr); margin-top:14px;">
+          <section class="rapport-mdc-card">
+            <div class="rapport-mdc-card-head"><span>Classement</span><h3>Réanimations effectuées</h3></div>
+            <div id="classementListe"></div>
+          </section>
+        </div>
+      </section>
+    `;
+
+    await dessinerClassementMDC();
+  }
+
+  async function dessinerClassementMDC() {
+    const zone = document.getElementById('classementListe');
+    if (!zone) return;
+    zone.innerHTML = '<div class="rapport-history-empty">Chargement du classement…</div>';
+
+    try {
+      const resultat = await appelerWebApp('classementReanimations', { validateur: matriculeActif });
+      const classement = (Array.isArray(resultat.classement) ? resultat.classement : [])
+        .slice()
+        .sort((a, b) => Number(b.totalReanimations || 0) - Number(a.totalReanimations || 0));
+
+      const total = document.getElementById('classementTotalMembres');
+      if (total) total.textContent = classement.length;
+
+      if (!classement.length) {
+        zone.innerHTML = '<div class="rapport-history-empty"><span class="empty-icon">🏆</span><strong>Aucune réanimation enregistrée pour le moment</strong></div>';
+        return;
+      }
+
+      const classesRang = ['classement-or', 'classement-argent', 'classement-bronze'];
+      zone.innerHTML = classement.map((m, i) => `
+        <div class="classement-row ${classesRang[i] || ''}">
+          <div class="classement-rang">${i + 1}</div>
+          <div class="classement-infos">
+            <strong>${echapperHtml(m.matricule)}</strong>
+            <span>${echapperHtml(m.grade || 'Grade non renseigné')}</span>
+          </div>
+          <div class="classement-valeur">${Number(m.totalReanimations || 0)}<span>réa.</span></div>
+        </div>
+      `).join('');
+    } catch (erreur) {
+      console.warn('Classement indisponible :', erreur);
+      zone.innerHTML = `<div class="rapport-history-empty"><strong>Classement indisponible</strong><br>Publiez la nouvelle version Apps Script (action 'classementReanimations').</div>`;
+    }
+  }
+
+  async function reinitialiserClassementMDC() {
+    if (!aAccesReinitialiserClassement(matriculeActif)) return;
+    if (!confirm('Réinitialiser le classement ? Le nombre de réanimations de tout le monde repassera à 0. Cette action est irréversible.')) return;
+
+    const bouton = event?.target;
+    if (bouton) { bouton.disabled = true; bouton.textContent = 'Réinitialisation…'; }
+    try {
+      await appelerWebApp('reinitialiserClassement', { validateur: matriculeActif });
+      await dessinerClassementMDC();
+      if (bouton) { bouton.disabled = false; bouton.textContent = 'Réinitialiser le classement'; }
+    } catch (erreur) {
+      if (bouton) { bouton.disabled = false; bouton.textContent = 'Échec — réessayer'; }
+      alert(erreur.message || 'Impossible de réinitialiser le classement pour le moment. Vérifie que l\'action \'reinitialiserClassement\' est bien déployée côté Apps Script.');
+    }
+  }
+
+  // === Salon Suggestion MDC : consultation publique en 3 files (attente /
+  // validées / refusées) + un bouton dédié pour poster une nouvelle
+  // suggestion. Tout le monde voit les 3 files ; seuls les comptes ayant la
+  // permission 'gererSuggestions' voient les boutons Valider/Refuser sur les
+  // suggestions en attente. ===
+  const CLE_SUGGESTIONS_MDC_CACHE = 'gdaSuggestionsMdcCache';
+  const CLE_SUGGESTIONS_MASQUEES_LOCAL = 'gdaSuggestionsMdcMasqueesLocalement';
+
+  function aAccesGestionSuggestions(matricule) {
+    return aPermission(matricule, 'gererSuggestions');
+  }
+
+  function lireSuggestionsMasqueesLocalement() {
+    try { return new Set(JSON.parse(localStorage.getItem(CLE_SUGGESTIONS_MASQUEES_LOCAL) || '[]')); }
+    catch (e) { return new Set(); }
+  }
+
+  function suggestionEstMasqueeLocalement(suggestion) {
+    return lireSuggestionsMasqueesLocalement().has(String(suggestion.id || ''));
+  }
+
+  function masquerSuggestionLocalement(id, bouton) {
+    if (!confirm('Masquer cette suggestion sur cet appareil ? Elle restera dans le Google Sheet.')) return;
+    const masquees = lireSuggestionsMasqueesLocalement();
+    masquees.add(String(id));
+    localStorage.setItem(CLE_SUGGESTIONS_MASQUEES_LOCAL, JSON.stringify([...masquees]));
+    const ligne = bouton && bouton.closest('.rapport-validation-item');
+    if (ligne) ligne.remove();
+  }
+
+  function lireSuggestionsMdc() {
+    try {
+      const suggestions = JSON.parse(localStorage.getItem(CLE_SUGGESTIONS_MDC_CACHE) || '[]');
+      return Array.isArray(suggestions) ? suggestions : [];
+    } catch { return []; }
+  }
+
+  function ecrireSuggestionsMdc(suggestions) {
+    localStorage.setItem(CLE_SUGGESTIONS_MDC_CACHE, JSON.stringify(suggestions.slice(0, 200)));
+  }
+
+  function classeStatutSuggestion(statut) {
+    if (statut === 'Validée') return 'log-action-valide';
+    if (statut === 'Refusée') return 'log-action-refuse';
+    return '';
+  }
+
+  function boutonsActionsSuggestion(suggestion) {
+    const boutons = [];
+    if (suggestion.statut === 'En attente' && aAccesGestionSuggestions(matriculeActif)) {
+      boutons.push(`<button class="rapport-validation-btn" onclick="validerSuggestionMDC('${echapperAttr(suggestion.id)}', this)">Valider</button>`);
+      boutons.push(`<button class="rapport-validation-btn" style="border-color:#e38a83; background:rgba(160,49,49,.2); color:#ffd0cc;" onclick="refuserSuggestionMDC('${echapperAttr(suggestion.id)}', this)">Refuser</button>`);
+    }
+    return boutons.length ? `<div class="rapport-validation-actions">${boutons.join('')}</div>` : '';
+  }
+
+  function boutonMasquerSuggestion(suggestion) {
+    return `<div class="rapport-validation-actions"><button class="rapport-validation-btn" style="border-color:#e38a83; background:rgba(160,49,49,.2); color:#ffd0cc;" onclick="masquerSuggestionLocalement('${echapperAttr(suggestion.id)}', this)">Masquer localement</button></div>`;
+  }
+
+  // Vue actuellement affichée dans le salon Suggestion MDC :
+  // 'attente' | 'validees' | 'refusees' | 'form'
+  let vueSuggestionActive = 'attente';
+
+  // Actions Web App attendues côté Apps Script pour chaque file (mêmes
+  // conventions que 'listeSuggestionsEnAttente', déjà utilisée) :
+  //   - listeSuggestionsEnAttente { validateur } -> { ok, suggestions: [...] }
+  //   - listeSuggestionsValidees  { validateur } -> { ok, suggestions: [...] }
+  //   - listeSuggestionsRefusees  { validateur } -> { ok, suggestions: [...] }
+  // Si 'listeSuggestionsValidees' / 'listeSuggestionsRefusees' n'existent pas
+  // encore côté Apps Script, la vue affiche un message d'indisponibilité au
+  // lieu de planter (comme pour les autres files du dashboard).
+  const ACTIONS_SUGGESTIONS_PAR_VUE = {
+    attente: 'listeSuggestionsEnAttente',
+    validees: 'listeSuggestionsValidees',
+    refusees: 'listeSuggestionsRefusees'
+  };
+
+  function marquerBoutonSuggestionActif(vue) {
+    ['boutonSuggestionPoster', 'boutonSuggestionAttente', 'boutonSuggestionValidees', 'boutonSuggestionRefusees'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.style.filter = '';
+    });
+    const idParVue = {
+      form: 'boutonSuggestionPoster',
+      attente: 'boutonSuggestionAttente',
+      validees: 'boutonSuggestionValidees',
+      refusees: 'boutonSuggestionRefusees'
+    };
+    const actif = document.getElementById(idParVue[vue]);
+    if (actif) actif.style.filter = 'brightness(1.35)';
+  }
+
+  async function afficherSuggestionVue(vue) {
+    vueSuggestionActive = vue;
+    marquerBoutonSuggestionActif(vue);
+
+    const contenu = document.getElementById('suggestionZoneContenu');
+    const label = document.getElementById('suggestionZoneLabel');
+    const titre = document.getElementById('suggestionZoneTitre');
+    if (!contenu) return;
+
+    if (vue === 'form') {
+      if (label) label.textContent = 'Nouvelle suggestion';
+      if (titre) titre.textContent = 'Proposer une idée';
+      const nom = matriculeActif || '—';
+      const grade = gradeActif || 'Grade non renseigné';
+      const initiale = nom.charAt(0).toUpperCase() || '?';
+      contenu.innerHTML = `
+        <form class="rapport-mdc-form" id="suggestionMdcForm">
+          <div class="rapport-identite"><div class="rapport-identite-icon">${echapperHtml(initiale)}</div><div><strong>${echapperHtml(nom)}</strong><span>${echapperHtml(grade)} · identité verrouillée par la connexion</span></div></div>
+          <div class="rapport-fields">
+            <div class="rapport-field full"><label for="suggestionTitre">Titre</label><input id="suggestionTitre" type="text" maxlength="150" placeholder="Résumez votre idée en quelques mots…" required></div>
+            <div class="rapport-field full"><label for="suggestionTexte">Détail de la suggestion</label><textarea id="suggestionTexte" maxlength="2000" placeholder="Expliquez votre suggestion…" required></textarea></div>
+          </div>
+          <button class="rapport-submit" type="submit">Envoyer la suggestion</button>
+          <div class="rapport-feedback" id="suggestionFeedback"></div>
+        </form>
+      `;
+      document.getElementById('suggestionMdcForm').addEventListener('submit', envoyerSuggestionMDC);
+      return;
+    }
+
+    const titresParVue = {
+      attente: ['File d\'attente', 'Suggestions en attente'],
+      validees: ['Historique', 'Suggestions validées'],
+      refusees: ['Historique', 'Suggestions refusées']
+    };
+    const [labelTexte, titreTexte] = titresParVue[vue] || ['', ''];
+    if (label) label.textContent = labelTexte;
+    if (titre) titre.textContent = titreTexte;
+
+    await dessinerListeSuggestionsGlobale(vue);
+  }
+
+  async function dessinerListeSuggestionsGlobale(vue) {
+    const contenu = document.getElementById('suggestionZoneContenu');
+    if (!contenu) return;
+    contenu.innerHTML = '<div class="rapport-history-empty">Chargement…</div>';
+
+    const action = ACTIONS_SUGGESTIONS_PAR_VUE[vue];
+    try {
+      const resultat = await appelerWebApp(action, { validateur: matriculeActif });
+      const suggestions = (Array.isArray(resultat.suggestions) ? resultat.suggestions : []).filter(s => !suggestionEstMasqueeLocalement(s));
+      const total = document.getElementById('suggestionTotal');
+      if (total) total.textContent = suggestions.length;
+
+      contenu.innerHTML = suggestions.length ? suggestions.map(suggestion => `
+        <div class="rapport-validation-item">
+          <strong>${echapperHtml(suggestion.matricule)} · ${echapperHtml(suggestion.grade)}</strong>
+          <p><strong>${echapperHtml(suggestion.titre || 'Sans titre')}</strong></p>
+          <p>${echapperHtml(suggestion.texte || '')}</p>
+          ${suggestion.traitePar ? `<p>Traité par ${echapperHtml(suggestion.traitePar)} · ${formaterDateRapport(suggestion.dateTraitement)}</p>` : `<p>Envoyée le ${formaterDateRapport(suggestion.date)}</p>`}
+          ${vue === 'attente' ? boutonsActionsSuggestion(suggestion) : ''}
+          ${boutonMasquerSuggestion(suggestion)}
+        </div>
+      `).join('') : '<div class="rapport-history-empty"><span class="empty-icon">💡</span><strong>Rien pour le moment</strong></div>';
+    } catch (erreur) {
+      console.warn('Liste des suggestions indisponible :', erreur);
+      const total = document.getElementById('suggestionTotal');
+      if (total) total.textContent = '0';
+      contenu.innerHTML = `<div class="rapport-history-empty"><strong>Liste indisponible</strong><br>Publiez la nouvelle version Apps Script (action '${action}').</div>`;
+    }
+  }
+
+  async function validerSuggestionMDC(id, bouton) {
+    if (!confirm('Valider cette suggestion ?')) return;
+    bouton.disabled = true;
+    bouton.textContent = 'Validation…';
+    try {
+      await appelerWebApp('validerSuggestion', { id, validateur: matriculeActif });
+      await dessinerListeSuggestionsGlobale(vueSuggestionActive);
+    } catch (erreur) {
+      bouton.disabled = false;
+      bouton.textContent = 'Échec — réessayer';
+      alert(erreur.message || 'Impossible de valider la suggestion.');
+    }
+  }
+
+  async function refuserSuggestionMDC(id, bouton) {
+    if (!confirm('Refuser cette suggestion ?')) return;
+    bouton.disabled = true;
+    bouton.textContent = 'Refus…';
+    try {
+      await appelerWebApp('refuserSuggestion', { id, validateur: matriculeActif });
+      await dessinerListeSuggestionsGlobale(vueSuggestionActive);
+    } catch (erreur) {
+      bouton.disabled = false;
+      bouton.textContent = 'Échec — réessayer';
+      alert(erreur.message || 'Impossible de refuser la suggestion.');
+    }
+  }
+
+  function afficherSuggestionMDC() {
+    const zone = document.getElementById('contenuLienMDC');
+    if (!zone) return;
+    document.body.classList.add('lien-ouvert');
+    arreterAutoRefreshEffectif();
+
+    zone.innerHTML = `
+      <section class="rapport-mdc-wrap">
+        <header class="rapport-mdc-header">
+          <div>
+            <div class="rapport-mdc-kicker">Espace GDA</div>
+            <h2>💡 Suggestions MDC</h2>
+            <p class="rapport-mdc-subtitle">Consultez les suggestions et proposez les vôtres.</p>
+          </div>
+          <div class="rapport-mdc-stats"><div class="rapport-stat"><strong id="suggestionTotal">0</strong><span>Affichées</span></div></div>
+        </header>
+        <div style="display:flex; gap:8px; margin-top:16px; flex-wrap:wrap;">
+          <button id="boutonSuggestionPoster" class="rapport-validation-btn" onclick="afficherSuggestionVue('form')">Poster une suggestion</button>
+          <button id="boutonSuggestionAttente" class="rapport-validation-btn" onclick="afficherSuggestionVue('attente')">Suggestions en attente</button>
+          <button id="boutonSuggestionValidees" class="rapport-validation-btn" style="border-color:#67dcb0; background:rgba(49,160,113,.2); color:#b6ffdc;" onclick="afficherSuggestionVue('validees')">Suggestions validées</button>
+          <button id="boutonSuggestionRefusees" class="rapport-validation-btn" style="border-color:#e38a83; background:rgba(160,49,49,.2); color:#ffd0cc;" onclick="afficherSuggestionVue('refusees')">Suggestions refusées</button>
+        </div>
+        <div class="rapport-mdc-grid" style="grid-template-columns: minmax(0, 1fr); margin-top:14px;">
+          <section class="rapport-mdc-card">
+            <div class="rapport-mdc-card-head"><span id="suggestionZoneLabel">Vue</span><h3 id="suggestionZoneTitre">Suggestions</h3></div>
+            <div id="suggestionZoneContenu"></div>
+          </section>
+        </div>
+      </section>
+    `;
+    afficherSuggestionVue('attente');
+  }
+
+  async function envoyerSuggestionMDC(event) {
+    event.preventDefault();
+    const bouton = event.currentTarget.querySelector('.rapport-submit');
+    const feedback = document.getElementById('suggestionFeedback');
+    const titre = document.getElementById('suggestionTitre').value.trim();
+    const texte = document.getElementById('suggestionTexte').value.trim();
+    if (!titre || !texte) {
+      feedback.className = 'rapport-feedback fail';
+      feedback.textContent = 'Renseigne un titre et le détail de ta suggestion.';
+      return;
+    }
+    const suggestion = { matricule: matriculeActif, grade: gradeActif, titre, texte, date: new Date().toISOString(), statut: 'En attente' };
+    const suggestions = lireSuggestionsMdc();
+    suggestions.unshift(suggestion);
+    ecrireSuggestionsMdc(suggestions);
+    bouton.disabled = true;
+    bouton.textContent = 'Envoi…';
+    try {
+      await appelerWebApp('soumettreSuggestion', suggestion);
+      feedback.className = 'rapport-feedback ok';
+      feedback.textContent = 'Suggestion envoyée : en attente de traitement.';
+    } catch (erreur) {
+      suggestion.nonSynchronise = true;
+      ecrireSuggestionsMdc(suggestions);
+      feedback.className = 'rapport-feedback fail';
+      feedback.textContent = 'Suggestion conservée sur cet appareil, en attente de synchronisation.';
+    } finally {
+      event.currentTarget.reset();
+      bouton.disabled = false;
+      bouton.textContent = 'Envoyer la suggestion';
+    }
+  }
+
+  // === Salon Demande d'entraînement : même logique que Suggestion MDC
+  // (3 files : attente / validées / refusées + formulaire de dépôt). Seuls
+  // les comptes ayant la permission 'gererEntrainements' voient les boutons
+  // Valider/Refuser sur les demandes en attente. ===
+  const CLE_ENTRAINEMENTS_MDC_CACHE = 'gdaEntrainementsMdcCache';
+  const CLE_ENTRAINEMENTS_MASQUES_LOCAL = 'gdaEntrainementsMdcMasquesLocalement';
+
+  function aAccesGestionEntrainements(matricule) {
+    return aPermission(matricule, 'gererEntrainements');
+  }
+
+  function lireEntrainementsMasquesLocalement() {
+    try { return new Set(JSON.parse(localStorage.getItem(CLE_ENTRAINEMENTS_MASQUES_LOCAL) || '[]')); }
+    catch (e) { return new Set(); }
+  }
+
+  function entrainementEstMasqueLocalement(entrainement) {
+    return lireEntrainementsMasquesLocalement().has(String(entrainement.id || ''));
+  }
+
+  function masquerEntrainementLocalement(id, bouton) {
+    if (!confirm('Masquer cette demande sur cet appareil ? Elle restera dans le Google Sheet.')) return;
+    const masques = lireEntrainementsMasquesLocalement();
+    masques.add(String(id));
+    localStorage.setItem(CLE_ENTRAINEMENTS_MASQUES_LOCAL, JSON.stringify([...masques]));
+    const ligne = bouton && bouton.closest('.rapport-validation-item');
+    if (ligne) ligne.remove();
+  }
+
+  function lireEntrainementsMdc() {
+    try {
+      const entrainements = JSON.parse(localStorage.getItem(CLE_ENTRAINEMENTS_MDC_CACHE) || '[]');
+      return Array.isArray(entrainements) ? entrainements : [];
+    } catch { return []; }
+  }
+
+  function ecrireEntrainementsMdc(entrainements) {
+    localStorage.setItem(CLE_ENTRAINEMENTS_MDC_CACHE, JSON.stringify(entrainements.slice(0, 200)));
+  }
+
+  function boutonsActionsEntrainement(entrainement) {
+    const boutons = [];
+    if (entrainement.statut === 'En attente' && aAccesGestionEntrainements(matriculeActif)) {
+      boutons.push(`<button class="rapport-validation-btn" onclick="validerEntrainementMDC('${echapperAttr(entrainement.id)}', this)">Valider</button>`);
+      boutons.push(`<button class="rapport-validation-btn" style="border-color:#e38a83; background:rgba(160,49,49,.2); color:#ffd0cc;" onclick="refuserEntrainementMDC('${echapperAttr(entrainement.id)}', this)">Refuser</button>`);
+    }
+    return boutons.length ? `<div class="rapport-validation-actions">${boutons.join('')}</div>` : '';
+  }
+
+  function boutonMasquerEntrainement(entrainement) {
+    return `<div class="rapport-validation-actions"><button class="rapport-validation-btn" style="border-color:#e38a83; background:rgba(160,49,49,.2); color:#ffd0cc;" onclick="masquerEntrainementLocalement('${echapperAttr(entrainement.id)}', this)">Masquer localement</button></div>`;
+  }
+
+  // Vue actuellement affichée : 'attente' | 'validees' | 'refusees' | 'form'
+  let vueEntrainementActive = 'attente';
+
+  // Actions Web App attendues côté Apps Script (mêmes conventions que pour
+  // les suggestions) :
+  //   - listeEntrainementsEnAttente { validateur } -> { ok, entrainements: [...] }
+  //   - listeEntrainementsValidees  { validateur } -> { ok, entrainements: [...] }
+  //   - listeEntrainementsRefusees  { validateur } -> { ok, entrainements: [...] }
+  //   - soumettreEntrainement { matricule, grade, type, dateHeure, description, roles, lieu, invites }
+  //   - validerEntrainement { id, validateur }
+  //   - refuserEntrainement { id, validateur }
+  const ACTIONS_ENTRAINEMENTS_PAR_VUE = {
+    attente: 'listeEntrainementsEnAttente',
+    validees: 'listeEntrainementsValidees',
+    refusees: 'listeEntrainementsRefusees'
+  };
+
+  const TYPES_ENTRAINEMENT = ['Médecin'];
+  const GROUPES_INVITES_ENTRAINEMENT = ['BPM', 'MDC AIT', 'MDC GI', 'MDC FIM'];
+
+  function marquerBoutonEntrainementActif(vue) {
+    ['boutonEntrainementPoster', 'boutonEntrainementAttente', 'boutonEntrainementValidees', 'boutonEntrainementRefusees'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.style.filter = '';
+    });
+    const idParVue = {
+      form: 'boutonEntrainementPoster',
+      attente: 'boutonEntrainementAttente',
+      validees: 'boutonEntrainementValidees',
+      refusees: 'boutonEntrainementRefusees'
+    };
+    const actif = document.getElementById(idParVue[vue]);
+    if (actif) actif.style.filter = 'brightness(1.35)';
+  }
+
+  async function afficherEntrainementVue(vue) {
+    vueEntrainementActive = vue;
+    marquerBoutonEntrainementActif(vue);
+
+    const contenu = document.getElementById('entrainementZoneContenu');
+    const label = document.getElementById('entrainementZoneLabel');
+    const titre = document.getElementById('entrainementZoneTitre');
+    if (!contenu) return;
+
+    if (vue === 'form') {
+      if (label) label.textContent = 'Nouvelle demande';
+      if (titre) titre.textContent = 'Proposer un entraînement';
+      const nom = matriculeActif || '—';
+      const grade = gradeActif || 'Grade non renseigné';
+      const initiale = nom.charAt(0).toUpperCase() || '?';
+      contenu.innerHTML = `
+        <form class="rapport-mdc-form" id="entrainementMdcForm">
+          <div class="rapport-identite"><div class="rapport-identite-icon">${echapperHtml(initiale)}</div><div><strong>${echapperHtml(nom)}</strong><span>${echapperHtml(grade)} · identité verrouillée par la connexion</span></div></div>
+          <div class="rapport-fields">
+            <div class="rapport-field">
+              <label for="entrainementType">Type d'entraînement</label>
+              <select id="entrainementType">${TYPES_ENTRAINEMENT.map(t => `<option value="${t}">${t}</option>`).join('')}</select>
+            </div>
+            <div class="rapport-field">
+              <label for="entrainementDateHeure">Date &amp; Heure</label>
+              <input id="entrainementDateHeure" type="datetime-local" required>
+            </div>
+            <div class="rapport-field full"><label for="entrainementDescription">Description de l'entraînement</label><textarea id="entrainementDescription" maxlength="2000" placeholder="Déroulé, objectifs…" required></textarea></div>
+            <div class="rapport-field full"><label for="entrainementRoles">Description des rôles</label><textarea id="entrainementRoles" maxlength="2000" placeholder="Qui fait quoi…" required></textarea></div>
+            <div class="rapport-field"><label for="entrainementLieu">Lieux</label><input id="entrainementLieu" type="text" maxlength="150" placeholder="Lieu de l'entraînement" required></div>
+            <div class="rapport-field full">
+              <label>Personnel invité</label>
+              <div style="display:flex; flex-wrap:wrap; gap:14px; margin-top:6px;">
+                ${GROUPES_INVITES_ENTRAINEMENT.map(g => `
+                  <label style="display:flex; align-items:center; gap:7px; font:600 12.5px 'JetBrains Mono', monospace; color:#dbe9f0; cursor:pointer;">
+                    <input type="checkbox" class="entrainement-invite-case" value="${g}"> ${g}
+                  </label>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+          <button class="rapport-submit" type="submit">Envoyer la demande</button>
+          <div class="rapport-feedback" id="entrainementFeedback"></div>
+        </form>
+      `;
+      document.getElementById('entrainementMdcForm').addEventListener('submit', envoyerEntrainementMDC);
+      return;
+    }
+
+    const titresParVue = {
+      attente: ['File d\'attente', 'Demandes en attente'],
+      validees: ['Historique', 'Demandes validées'],
+      refusees: ['Historique', 'Demandes refusées']
+    };
+    const [labelTexte, titreTexte] = titresParVue[vue] || ['', ''];
+    if (label) label.textContent = labelTexte;
+    if (titre) titre.textContent = titreTexte;
+
+    await dessinerListeEntrainementsGlobale(vue);
+  }
+
+  async function dessinerListeEntrainementsGlobale(vue) {
+    const contenu = document.getElementById('entrainementZoneContenu');
+    if (!contenu) return;
+    contenu.innerHTML = '<div class="rapport-history-empty">Chargement…</div>';
+
+    const action = ACTIONS_ENTRAINEMENTS_PAR_VUE[vue];
+    try {
+      const resultat = await appelerWebApp(action, { validateur: matriculeActif });
+      const entrainements = (Array.isArray(resultat.entrainements) ? resultat.entrainements : []).filter(e => !entrainementEstMasqueLocalement(e));
+      const total = document.getElementById('entrainementTotal');
+      if (total) total.textContent = entrainements.length;
+
+      contenu.innerHTML = entrainements.length ? entrainements.map(e => `
+        <div class="rapport-validation-item">
+          <strong>${echapperHtml(e.matricule)} · ${echapperHtml(e.grade)}</strong>
+          <p><strong>${echapperHtml(e.type || 'Type non précisé')} — ${formaterDateRapport(e.dateHeure)}</strong></p>
+          <p>${echapperHtml(e.description || '')}</p>
+          <p><strong>Rôles :</strong> ${echapperHtml(e.roles || '—')}</p>
+          <p><strong>Lieu :</strong> ${echapperHtml(e.lieu || '—')} &nbsp;·&nbsp; <strong>Invités :</strong> ${echapperHtml(e.invites || '—')}</p>
+          ${e.traitePar ? `<p>Traité par ${echapperHtml(e.traitePar)} · ${formaterDateRapport(e.dateTraitement)}</p>` : `<p>Envoyée le ${formaterDateRapport(e.date)}</p>`}
+          ${vue === 'attente' ? boutonsActionsEntrainement(e) : ''}
+          ${boutonMasquerEntrainement(e)}
+        </div>
+      `).join('') : '<div class="rapport-history-empty"><span class="empty-icon">🎯</span><strong>Rien pour le moment</strong></div>';
+    } catch (erreur) {
+      console.warn('Liste des entraînements indisponible :', erreur);
+      const total = document.getElementById('entrainementTotal');
+      if (total) total.textContent = '0';
+      contenu.innerHTML = `<div class="rapport-history-empty"><strong>Liste indisponible</strong><br>Publiez la nouvelle version Apps Script (action '${action}').</div>`;
+    }
+  }
+
+  async function validerEntrainementMDC(id, bouton) {
+    if (!confirm('Valider cette demande d\'entraînement ?')) return;
+    bouton.disabled = true;
+    bouton.textContent = 'Validation…';
+    try {
+      await appelerWebApp('validerEntrainement', { id, validateur: matriculeActif });
+      await dessinerListeEntrainementsGlobale(vueEntrainementActive);
+    } catch (erreur) {
+      bouton.disabled = false;
+      bouton.textContent = 'Échec — réessayer';
+      alert(erreur.message || 'Impossible de valider la demande.');
+    }
+  }
+
+  async function refuserEntrainementMDC(id, bouton) {
+    if (!confirm('Refuser cette demande d\'entraînement ?')) return;
+    bouton.disabled = true;
+    bouton.textContent = 'Refus…';
+    try {
+      await appelerWebApp('refuserEntrainement', { id, validateur: matriculeActif });
+      await dessinerListeEntrainementsGlobale(vueEntrainementActive);
+    } catch (erreur) {
+      bouton.disabled = false;
+      bouton.textContent = 'Échec — réessayer';
+      alert(erreur.message || 'Impossible de refuser la demande.');
+    }
+  }
+
+  function afficherEntrainementMDC() {
+    const zone = document.getElementById('contenuLienMDC');
+    if (!zone) return;
+    document.body.classList.add('lien-ouvert');
+    arreterAutoRefreshEffectif();
+
+    zone.innerHTML = `
+      <section class="rapport-mdc-wrap">
+        <header class="rapport-mdc-header">
+          <div>
+            <div class="rapport-mdc-kicker">Espace GDA</div>
+            <h2>🎯 Demandes d'entraînement</h2>
+            <p class="rapport-mdc-subtitle">Consultez les demandes d'entraînement et proposez les vôtres.</p>
+          </div>
+          <div class="rapport-mdc-stats"><div class="rapport-stat"><strong id="entrainementTotal">0</strong><span>Affichées</span></div></div>
+        </header>
+        <div style="display:flex; gap:8px; margin-top:16px; flex-wrap:wrap;">
+          <button id="boutonEntrainementPoster" class="rapport-validation-btn" onclick="afficherEntrainementVue('form')">Poster une demande</button>
+          <button id="boutonEntrainementAttente" class="rapport-validation-btn" onclick="afficherEntrainementVue('attente')">Demandes en attente</button>
+          <button id="boutonEntrainementValidees" class="rapport-validation-btn" style="border-color:#67dcb0; background:rgba(49,160,113,.2); color:#b6ffdc;" onclick="afficherEntrainementVue('validees')">Demandes validées</button>
+          <button id="boutonEntrainementRefusees" class="rapport-validation-btn" style="border-color:#e38a83; background:rgba(160,49,49,.2); color:#ffd0cc;" onclick="afficherEntrainementVue('refusees')">Demandes refusées</button>
+        </div>
+        <div class="rapport-mdc-grid" style="grid-template-columns: minmax(0, 1fr); margin-top:14px;">
+          <section class="rapport-mdc-card">
+            <div class="rapport-mdc-card-head"><span id="entrainementZoneLabel">Vue</span><h3 id="entrainementZoneTitre">Demandes</h3></div>
+            <div id="entrainementZoneContenu"></div>
+          </section>
+        </div>
+      </section>
+    `;
+    afficherEntrainementVue('attente');
+  }
+
+  async function envoyerEntrainementMDC(event) {
+    event.preventDefault();
+    const bouton = event.currentTarget.querySelector('.rapport-submit');
+    const feedback = document.getElementById('entrainementFeedback');
+    const type = document.getElementById('entrainementType').value;
+    const dateHeure = document.getElementById('entrainementDateHeure').value;
+    const description = document.getElementById('entrainementDescription').value.trim();
+    const roles = document.getElementById('entrainementRoles').value.trim();
+    const lieu = document.getElementById('entrainementLieu').value.trim();
+    const invites = Array.from(document.querySelectorAll('.entrainement-invite-case:checked')).map(c => c.value).join(', ');
+
+    if (!dateHeure || !description || !roles || !lieu) {
+      feedback.className = 'rapport-feedback fail';
+      feedback.textContent = 'Renseigne au minimum la date, la description, les rôles et le lieu.';
+      return;
+    }
+
+    const entrainement = {
+      matricule: matriculeActif, grade: gradeActif, type, dateHeure, description, roles, lieu, invites,
+      date: new Date().toISOString(), statut: 'En attente'
+    };
+    const entrainements = lireEntrainementsMdc();
+    entrainements.unshift(entrainement);
+    ecrireEntrainementsMdc(entrainements);
+    bouton.disabled = true;
+    bouton.textContent = 'Envoi…';
+    try {
+      await appelerWebApp('soumettreEntrainement', entrainement);
+      feedback.className = 'rapport-feedback ok';
+      feedback.textContent = 'Demande envoyée : en attente de validation.';
+    } catch (erreur) {
+      entrainement.nonSynchronise = true;
+      ecrireEntrainementsMdc(entrainements);
+      feedback.className = 'rapport-feedback fail';
+      feedback.textContent = 'Demande conservée sur cet appareil, en attente de synchronisation.';
+    } finally {
+      event.currentTarget.reset();
+      bouton.disabled = false;
+      bouton.textContent = 'Envoyer la demande';
+    }
+  }
+
+  async function chargerRapportsMdc() {
+    try {
+      const resultat = await appelerWebApp('listeMesRapports', { matricule: matriculeActif });
+      if (Array.isArray(resultat.rapports)) {
+        ecrireRapportsMdc(resultat.rapports);
+        return resultat.rapports;
+      }
+    } catch (erreur) {
+      console.warn('Historique des rapports indisponible :', erreur);
+    }
+    return lireRapportsMdc().filter(rapport => rapport.matricule === matriculeActif);
+  }
+
+  async function dessinerHistoriqueRapports() {
+    const zone = document.getElementById('rapportHistorique');
+    const total = document.getElementById('rapportTotal');
+    const reanimationsTotal = document.getElementById('rapportReanimationsTotal');
+    if (!zone) return;
+    const rapports = (await chargerRapportsMdc())
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+    if (total) total.textContent = rapports.length;
+    if (reanimationsTotal) reanimationsTotal.textContent = rapports.reduce((somme, rapport) => somme + Number(rapport.reanimations || 0), 0);
+    zone.innerHTML = rapports.length ? rapports.map(rapport => `
+      <article class="rapport-history-item">
+        <div class="rapport-history-top"><span>${formaterDateRapport(rapport.date)}</span><span>${echapperHtml(rapport.grade || '—')}</span></div>
+        <div class="rapport-history-values"><span>⚕ ${Number(rapport.reanimations || 0)} réanimation(s)</span><span>✚ ${Number(rapport.soins || 0)} soin(s)</span></div>
+        <div class="rapport-history-comment">${echapperHtml(rapport.commentaire || 'Aucun commentaire.')}</div>
+        ${rapport.nonSynchronise ? '<div class="rapport-history-sync">⚠ En attente de synchronisation</div>' : ''}
+      </article>
+    `).join('') : '<div class="rapport-history-empty"><span class="empty-icon">🗂️</span><strong>Aucun rapport envoyé</strong><br>Votre premier rapport apparaîtra ici.</div>';
+  }
+
+  async function dessinerValidationRapports() {
+    const zone = document.getElementById('rapportValidation');
+    if (!zone || !aAccesGestionRapports(matriculeActif)) return;
+    zone.innerHTML = '<div class="rapport-history-empty">Chargement des rapports en attente…</div>';
+    try {
+      const resultat = await appelerWebApp('listeRapportsEnAttente', { validateur: matriculeActif });
+      const rapports = (Array.isArray(resultat.rapports) ? resultat.rapports : []).filter(rapport => !rapportEstMasqueLocalement(rapport));
+      zone.innerHTML = rapports.length ? `
+        <div class="rapport-validation"><div class="rapport-validation-head">${rapports.length} rapport(s) à valider</div>
+          ${rapports.map(rapport => `<div class="rapport-validation-item">
+            <strong>${echapperHtml(rapport.matricule)} · ${echapperHtml(rapport.grade)}</strong>
+            <div class="rapport-history-values"><span>⚕ ${Number(rapport.reanimations || 0)} réa.</span><span>✚ ${Number(rapport.soins || 0)} soin(s)</span></div>
+            <p>${echapperHtml(rapport.commentaire || 'Aucun commentaire.')}</p>
+            ${boutonsActionsRapport(rapport)}
+            ${boutonMasquerRapport(rapport)}
+          </div>`).join('')}
+        </div>` : '<div class="rapport-history-empty"><strong>Aucun rapport en attente</strong><br>Les nouveaux rapports apparaîtront ici.</div>';
+    } catch (erreur) {
+      console.warn('File de validation indisponible :', erreur);
+      zone.innerHTML = '';
+    }
+  }
+
+  async function validerRapportMDC(id, bouton) {
+    if (!confirm('Valider ce rapport ? Le compteur de rapport de son auteur sera augmenté.')) return;
+    bouton.disabled = true;
+    bouton.textContent = 'Validation…';
+    try {
+      await appelerWebApp('validerRapport', { id, validateur: matriculeActif });
+      await Promise.all([dessinerHistoriqueRapports(), dessinerValidationRapports()]);
+    } catch (erreur) {
+      bouton.disabled = false;
+      bouton.textContent = 'Échec — réessayer';
+      alert(erreur.message || 'Impossible de valider le rapport.');
+    }
+  }
+
+  // Construit les boutons d'action affichés sur un rapport (file d'attente,
+  // archives, ou recherche par matricule), selon les permissions du
+  // matricule connecté :
+  //   - "Valider le rapport"  : uniquement si le rapport est "En attente" ET
+  //     permission 'validerRapports' (voir validerRapportMDC ci-dessus).
+  //   - "Supprimer" : permission 'supprimerRapports' (voir supprimerRapportMDC
+  //     ci-dessous). Fonctionne quel que soit le statut du rapport.
+  // Exemple d'ajout d'une nouvelle fonction protégée sur les rapports :
+  // ajoute une clé dans FONCTIONS_PERMISSION, un bouton ici gated par
+  // aPermission(matriculeActif, 'ta_cle'), et le contrôle serveur
+  // correspondant dans Rapports MDC.gs.
+  function boutonsActionsRapport(rapport) {
+    const boutons = [];
+    if (rapport.statut === 'En attente' && aPermission(matriculeActif, 'validerRapports')) {
+      boutons.push(`<button class="rapport-validation-btn" onclick="validerRapportMDC('${echapperAttr(rapport.id)}', this)">Valider le rapport</button>`);
+    }
+    if (aPermission(matriculeActif, 'supprimerRapports')) {
+      boutons.push(`<button class="rapport-validation-btn" style="border-color:#e38a83; background:rgba(160,49,49,.2); color:#ffd0cc;" onclick="supprimerRapportMDC('${echapperAttr(rapport.id)}', this)">Supprimer</button>`);
+    }
+    return boutons.length ? `<div class="rapport-validation-actions">${boutons.join('')}</div>` : '';
+  }
+
+  async function supprimerRapportMDC(id, bouton) {
+    if (!confirm('Supprimer définitivement ce rapport ? Cette action est irréversible.')) return;
+    bouton.disabled = true;
+    bouton.textContent = 'Suppression…';
+    try {
+      await appelerWebApp('supprimerRapport', { id, validateur: matriculeActif });
+      await Promise.all([
+        dessinerHistoriqueRapports(),
+        dessinerValidationRapports(),
+        document.getElementById('titreListeRapports')?.textContent === 'Archives rapports MDC' ? dessinerArchivesRapports() : Promise.resolve()
+      ]);
+    } catch (erreur) {
+      bouton.disabled = false;
+      bouton.textContent = 'Échec — réessayer';
+      alert(erreur.message || 'Impossible de supprimer le rapport.');
+    }
+  }
+
+  function afficherRapportMDC() {
+    const zone = document.getElementById('contenuLienMDC');
+    if (!zone) return;
+    document.body.classList.add('lien-ouvert');
+    arreterAutoRefreshEffectif();
+
+    // Les comptes ayant accès à la gestion des rapports (validerRapports et/ou
+    // supprimerRapports) accèdent uniquement à la file de validation.
+    if (aAccesGestionRapports(matriculeActif)) {
+      zone.innerHTML = `
+        <section class="rapport-mdc-wrap">
+          <header class="rapport-mdc-header">
+            <div>
+              <div class="rapport-mdc-kicker">Espace double verification</div>
+              <h2>Validation des rapports MDC</h2>
+              <p class="rapport-mdc-subtitle">Rapports en attente de validation.</p>
+            </div>
+          </header>
+          <div class="rapport-mdc-grid" style="grid-template-columns: minmax(0, 1fr);">
+            <section class="rapport-mdc-card">
+              <div class="rapport-mdc-card-head">
+                <span>Gestion des rapports</span><h3 id="titreListeRapports">Rapports en attente</h3>
+                <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+                  <button id="boutonRapportsAttente" class="rapport-validation-btn" onclick="afficherListeRapportsMdc('attente')">Rapports en attente</button>
+                  <button id="boutonArchivesRapports" class="rapport-validation-btn" style="border-color:#76c8f5; background:rgba(36,116,156,.22); color:#cceeff;" onclick="afficherListeRapportsMdc('archives')">Archives rapports MDC</button>
+                </div>
+                <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+                  <input id="rechercheRapportNom" type="search" placeholder="Rechercher un nom…" style="max-width:300px; padding:8px 10px; border:1px solid rgba(111,181,211,.35); border-radius:6px; background:#071522; color:#edf8ff;" onkeydown="if(event.key === 'Enter') rechercherRapportsParNom()">
+                  <button class="rapport-validation-btn" style="border-color:#76c8f5; background:rgba(36,116,156,.22); color:#cceeff;" onclick="rechercherRapportsParNom()">Rechercher</button>
+                </div>
+              </div>
+              <div id="rapportValidation"></div>
+            </section>
+          </div>
+        </section>
+      `;
+      dessinerValidationRapports();
+      return;
+    }
+    const nom = matriculeActif || '—';
+    const grade = gradeActif || 'Grade non renseigné';
+    const initiale = nom.charAt(0).toUpperCase() || '?';
+    zone.innerHTML = `
+      <section class="rapport-mdc-wrap">
+        <header class="rapport-mdc-header">
+          <div><div class="rapport-mdc-kicker">Espace GDA</div><h2>📝 Mes rapports</h2><p class="rapport-mdc-subtitle">Vos rapports personnels et leur état de traitement.</p></div>
+          <div class="rapport-mdc-stats"><div class="rapport-stat"><strong id="rapportTotal">0</strong><span>Rapports</span></div><div class="rapport-stat"><strong id="rapportReanimationsTotal">0</strong><span>Réanimations</span></div></div>
+        </header>
+        <div class="rapport-mdc-grid">
+          <section class="rapport-mdc-card">
+            <div class="rapport-mdc-card-head"><span>Nouveau rapport</span><h3>Compte rendu médical</h3></div>
+            <form class="rapport-mdc-form" id="rapportMdcForm">
+              <div class="rapport-identite"><div class="rapport-identite-icon">${echapperHtml(initiale)}</div><div><strong>${echapperHtml(nom)}</strong><span>${echapperHtml(grade)} · identité verrouillée par la connexion</span></div></div>
+              <div class="rapport-fields">
+                <div class="rapport-field"><label for="rapportReanimations">Nombre de réanimations</label><input id="rapportReanimations" type="number" min="0" value="0" required></div>
+                <div class="rapport-field"><label for="rapportSoins">Nombre de soins</label><input id="rapportSoins" type="number" min="0" value="0" required></div>
+                <div class="rapport-field full"><label for="rapportCommentaire">Commentaire</label><textarea id="rapportCommentaire" maxlength="1500" placeholder="Précisions utiles sur votre activité médicale…"></textarea></div>
+              </div>
+              <button class="rapport-submit" type="submit">Envoyer le rapport</button>
+              <div class="rapport-feedback" id="rapportFeedback"></div>
+            </form>
+          </section>
+          <section class="rapport-mdc-card">
+            <div class="rapport-mdc-card-head"><span>Historique personnel</span><h3>Mes rapports envoyés</h3></div>
+            <div class="rapport-history" id="rapportHistorique"></div>
+            <div id="rapportValidation"></div>
+          </section>
+        </div>
+      </section>
+    `;
+    document.getElementById('rapportMdcForm').addEventListener('submit', envoyerRapportMDC);
+    dessinerHistoriqueRapports();
+    dessinerValidationRapports();
+  }
+
+  async function envoyerRapportMDC(event) {
+    event.preventDefault();
+    const bouton = event.currentTarget.querySelector('.rapport-submit');
+    const feedback = document.getElementById('rapportFeedback');
+    const reanimations = Number(document.getElementById('rapportReanimations').value);
+    const soins = Number(document.getElementById('rapportSoins').value);
+    const commentaire = document.getElementById('rapportCommentaire').value.trim();
+    if (!Number.isInteger(reanimations) || reanimations < 0 || !Number.isInteger(soins) || soins < 0) {
+      feedback.className = 'rapport-feedback fail';
+      feedback.textContent = 'Indique des nombres entiers positifs ou nuls.';
+      return;
+    }
+    const rapport = { matricule: matriculeActif, grade: gradeActif, reanimations, soins, commentaire, date: new Date().toISOString(), statut: 'En attente' };
+    const rapports = lireRapportsMdc();
+    rapports.unshift(rapport);
+    ecrireRapportsMdc(rapports);
+    bouton.disabled = true;
+    bouton.textContent = 'Envoi…';
+    try {
+      // Le backend ajoute la demande à la file de validation partagée.
+      await appelerWebApp('soumettreRapport', rapport);
+      feedback.className = 'rapport-feedback ok';
+      feedback.textContent = 'Rapport envoyé : en attente de validation.';
+    } catch (erreur) {
+      rapport.nonSynchronise = true;
+      ecrireRapportsMdc(rapports);
+      feedback.className = 'rapport-feedback fail';
+      feedback.textContent = 'Rapport conservé sur cet appareil, en attente de synchronisation.';
+    } finally {
+      event.currentTarget.reset();
+      document.getElementById('rapportReanimations').value = '0';
+      document.getElementById('rapportSoins').value = '0';
+      bouton.disabled = false;
+      bouton.textContent = 'Envoyer le rapport';
+      dessinerHistoriqueRapports();
+    }
+  }
+
+  async function dessinerArchivesRapports() {
+    const zone = document.getElementById('rapportValidation');
+    if (!zone || !aAccesGestionRapports(matriculeActif)) return;
+    zone.innerHTML = '<div class="rapport-history-empty">Chargement des archives…</div>';
+    try {
+      const resultat = await appelerWebApp('listeRapportsArchives', { validateur: matriculeActif });
+      const rapports = (Array.isArray(resultat.rapports) ? resultat.rapports : []).filter(rapport => !rapportEstMasqueLocalement(rapport));
+      zone.innerHTML = rapports.length ? `
+        <div class="rapport-validation"><div class="rapport-validation-head">${rapports.length} rapport(s) archive(s)</div>
+          ${rapports.map(rapport => `<div class="rapport-validation-item">
+            <strong>${echapperHtml(rapport.matricule)} · ${echapperHtml(rapport.grade)}</strong>
+            <div class="rapport-history-values"><span>⚕ ${Number(rapport.reanimations || 0)} réa.</span><span>✚ ${Number(rapport.soins || 0)} soin(s)</span></div>
+            <p>${echapperHtml(rapport.commentaire || 'Aucun commentaire.')}</p>
+            <p>Validé par ${echapperHtml(rapport.validateur || '—')} · ${formaterDateRapport(rapport.dateValidation)}</p>
+            ${boutonsActionsRapport(rapport)}
+            ${boutonMasquerRapport(rapport)}
+          </div>`).join('')}
+        </div>` : '<div class="rapport-history-empty"><strong>Aucune archive</strong><br>Les rapports validés apparaîtront ici.</div>';
+    } catch (erreur) {
+      console.warn('Archives des rapports indisponibles :', erreur);
+      zone.innerHTML = '<div class="rapport-history-empty"><strong>Archives indisponibles</strong><br>Publiez la nouvelle version Apps Script.</div>';
+    }
+  }
+
+  async function rechercherRapportsParNom() {
+    const champ = document.getElementById('rechercheRapportNom');
+    const zone = document.getElementById('rapportValidation');
+    const titre = document.getElementById('titreListeRapports');
+    const matricule = (champ?.value || '').trim();
+    if (!zone || !matricule) return;
+    if (titre) titre.textContent = 'Rapports de ' + matricule;
+    zone.innerHTML = '<div class="rapport-history-empty">Recherche des rapports…</div>';
+    try {
+      const resultat = await appelerWebApp('listeRapportsParMatricule', { validateur: matriculeActif, matricule });
+      const rapports = (Array.isArray(resultat.rapports) ? resultat.rapports : []).filter(rapport => !rapportEstMasqueLocalement(rapport));
+      zone.innerHTML = rapports.length ? `
+        <div class="rapport-validation"><div class="rapport-validation-head">${rapports.length} rapport(s) pour ${echapperHtml(matricule)}</div>
+          ${rapports.map(rapport => `<div class="rapport-validation-item">
+            <strong>${echapperHtml(rapport.matricule)} · ${echapperHtml(rapport.grade)}</strong>
+            <div class="rapport-history-values"><span>⚕ ${Number(rapport.reanimations || 0)} réa.</span><span>✚ ${Number(rapport.soins || 0)} soin(s)</span><span>${echapperHtml(rapport.statut || '—')}</span></div>
+            <p>${echapperHtml(rapport.commentaire || 'Aucun commentaire.')}</p>
+            ${boutonsActionsRapport(rapport)}
+            ${boutonMasquerRapport(rapport)}
+          </div>`).join('')}
+        </div>` : '<div class="rapport-history-empty"><strong>Aucun rapport trouvé</strong><br>Ce nom n’a pas encore envoyé de rapport.</div>';
+    } catch (erreur) {
+      zone.innerHTML = '<div class="rapport-history-empty"><strong>Recherche indisponible</strong><br>Publiez la nouvelle version Apps Script.</div>';
+    }
+  }
+
+  function afficherListeRapportsMdc(vue) {
+    const titre = document.getElementById('titreListeRapports');
+    const attente = document.getElementById('boutonRapportsAttente');
+    const archives = document.getElementById('boutonArchivesRapports');
+    if (vue === 'archives') {
+      if (titre) titre.textContent = 'Archives rapports MDC';
+      if (archives) archives.style.filter = 'brightness(1.3)';
+      if (attente) attente.style.filter = '';
+      dessinerArchivesRapports();
+    } else {
+      if (titre) titre.textContent = 'Rapports en attente';
+      if (attente) attente.style.filter = 'brightness(1.3)';
+      if (archives) archives.style.filter = '';
+      dessinerValidationRapports();
+    }
+  }
+
+  function ouvrirLienMDC(index) {
+    const bouton = boutonsActifs[index];
+    if (!bouton) return;
+    const zone = document.getElementById('contenuLienMDC');
+    if (!zone) return;
+
+    arreterAutoRefreshEffectif();
+
+    // Si on quitte Administration pour une autre section du menu principal,
+    // la barre fixe des 3 boutons Administration doit disparaître.
+    if (bouton.label !== 'Administration') {
+      document.body.classList.remove('mode-admin');
+      fermerModaleEffectifReel();
+    }
+
+    // "Effectif MDC GDA" (menu principal) : tout le monde voit le tableau
+    // recréé en lecture seule, SAUF les personnes ayant la permission
+    // "edition_effectif" qui voient en plus un bouton "Modifier" (grade,
+    // rapport, médaille) sur chaque ligne. L'accès au document Google Sheet
+    // brut reste réservé au bouton "Administration".
+    if (bouton.label === 'Effectif MDC GDA') {
+      afficherEffectifRecree(aPermission(matriculeActif, 'edition_effectif'));
+      return;
+    }
+
+    if (bouton.label === 'Réglement GDA') {
+      afficherReglementGDA();
+      return;
+    }
+
+    if (bouton.label === 'Matériel MDC GDA') {
+      afficherMaterielMenu();
+      return;
+    }
+
+    if (bouton.label === 'Rapport MDC GDA') {
+      afficherRapportMDC();
+      return;
+    }
+
+    if (bouton.label === 'Suggestion MDC') {
+      afficherSuggestionMDC();
+      return;
+    }
+
+    if (bouton.label === 'Demande d\'entraînement') {
+      afficherEntrainementMDC();
+      return;
+    }
+
+    if (bouton.label === 'Classement') {
+      afficherClassementMDC();
+      return;
+    }
+
+    if (bouton.label === 'Administration') {
+      afficherAdministration();
+      return;
+    }
+
+    document.body.classList.add('lien-ouvert');
+    zone.innerHTML = `
+      <div class="iframe-wrap">
+        <iframe src="${bouton.url}" allow="fullscreen" allowfullscreen></iframe>
+      </div>
+    `;
+  }
+
+  function construireMenuBoutons() {
+    boutonsActifs = obtenirBoutonsPourUtilisateur();
+    return `
+      <div class="menu-boutons">
+        ${boutonsActifs.map((b, i) => `<button class="btn-lien-mdc ${b.label === 'Administration' ? 'btn-lien-admin' : ''}" onclick="ouvrirLienMDC(${i})">${b.label}</button>`).join('')}
+      </div>
+      <div id="contenuLienMDC"></div>
+    `;
+  }
+
+  async function accorderAcces(valeur, grade) {
+    matriculeActif = (valeur || '').toLowerCase();
+    gradeActif = (grade || '').trim();
+    document.querySelector('.console').classList.add('expanded');
+    document.body.classList.add('mode-boutons');
+
+    // Charge les permissions à jour avant de construire le menu, pour que le
+    // bouton "Administration" (et donc l'onglet "Permission") apparaisse
+    // correctement dès la connexion.
+    await chargerPermissions();
+
+    const docs = DOCUMENTS_SPECIAUX[valeur.toLowerCase()];
+    const docsHtml = docs && docs.length
+      ? `
+        <div class="docs-panel">
+          <div class="docs-title">Documents complémentaires</div>
+          ${docs.map(d => `
+            <a class="doc-link" href="${d.url}" target="_blank" rel="noopener">
+              <span>${d.label}</span>
+              <span class="arrow">→</span>
+            </a>
+          `).join('')}
+        </div>
+      `
+      : '';
+
+    const zonePrincipaleHtml = construireMenuBoutons();
+
+    actionZone.innerHTML = `
+      <div class="zone-principale">${zonePrincipaleHtml}</div>
+      ${docsHtml}
+    `;
+    actionZone.classList.add('open');
+
+    badgeMatricule.textContent = valeur;
+    badgeGrade.textContent = grade || '—';
+    if (badgeInsigne) badgeInsigne.innerHTML = construireInsigneGrade(grade);
+    badgeCorner.classList.add('visible');
+    document.getElementById('btnRefreshCorner')?.classList.add('visible');
+  }
+
+  const DUREE_TOTALE = 5000;
+  const DUREE_PHASE = DUREE_TOTALE / 2; // 2500ms : 0→50%, puis 50%→100%
+
+  function continuerPhase2(valeur, grade) {
+    scanBar.style.display = 'flex';
+    demarrerBarreScan(DUREE_PHASE, 50, 100);
+    setStatus('scanning', 'Finalisation de l\'accès…');
+    setTimeout(() => {
+      arreterBarreScan();
+      scanBar.style.display = 'none';
+      statusZone.classList.remove('active');
+      statusZone.innerHTML = '';
+      bigStatus.innerHTML = '';
+      accorderAcces(valeur, grade);
+    }, DUREE_PHASE);
+  }
+
+  function verifier() {
+    const valeur = input.value.trim();
+    clearAll();
+
+    if (!valeur) {
+      setStatus('fail', 'Entrez un matricule avant de vérifier.');
+      return;
+    }
+
+    verifyBtn.disabled = true;
+    scanBar.style.display = 'flex';
+    demarrerBarreScan(DUREE_PHASE, 0, 50);
+    setStatus('scanning', 'Vérification en cours…');
+
+    const debut = Date.now();
+
+    chargerMatriculesDepuisSheet()
+      .then((matriculesValides) => {
+        const ecoule = Date.now() - debut;
+        const attenteRestante = Math.max(0, DUREE_PHASE - ecoule);
+
+        setTimeout(async () => {
+          const grade = matriculesValides.get(valeur.toLowerCase());
+          const trouve = matriculesValides.has(valeur.toLowerCase());
+          arreterBarreScan();
+
+          if (trouve) {
+            const messageGrade = grade ? ` — Grade : ${grade}` : '';
+            setStatus('ok', `Accréditation reconnue, bienvenue ${valeur}${messageGrade}.`);
+            setBigStatus('ok', 'Autorisé');
+            inputRow.style.display = 'none';
+
+            // Double vérification Discord DÉSACTIVÉE pour tout le monde
+            // (temporairement, le temps de finir la mise en place du Worker
+            // de test). Pour la réactiver plus tard, repasse cette valeur à
+            // true — voir FONCTIONS_PERMISSION plus haut pour les droits
+            // internes, qui restent inchangés et gèrent seulement les
+            // boutons admin.
+            const necessiteDoubleVerif = false;
+            if (necessiteDoubleVerif) {
+              // Le Worker demande une connexion Discord et compare l'ID obtenu
+              // par Discord à celui associé au matricule, côté serveur.
+              setTimeout(() => {
+                setStatus('scanning', 'Redirection vers Discord pour confirmer votre compte…');
+                const urlConnexion = new URL('/login', DISCORD_AUTH_WORKER_URL);
+                urlConnexion.searchParams.set('matricule', valeur.toLowerCase());
+                // Le Worker doit mémoriser cette adresse dans l'état OAuth et
+                // y revenir après Discord. Ainsi la validation ne bascule pas
+                // vers la racine GitHub Pages quand cette page est ouverte à
+                // une autre adresse (par exemple /ore/modification.html).
+                const urlRetour = new URL(window.location.href);
+                ['discord_auth', 'token', 'reason'].forEach((cle) => urlRetour.searchParams.delete(cle));
+                urlConnexion.searchParams.set('return_to', urlRetour.toString());
+                fenetreConnexionDiscord = window.open(
+                  urlConnexion.toString(),
+                  'mdcDiscordAuth',
+                  'width=520,height=720,resizable=yes,scrollbars=yes'
+                );
+                if (!fenetreConnexionDiscord) {
+                  setStatus('fail', 'Autorise les fenêtres popup pour ouvrir la vérification Discord.');
+                  setBigStatus('fail', 'Popup bloquée');
+                  verifyBtn.disabled = false;
+                }
+              }, 1500);
+            } else {
+              fermerFenetreConnexionDiscord();
+              verifyBtn.disabled = false;
+              setTimeout(() => {
+                statusZone.classList.remove('active');
+                statusZone.innerHTML = '';
+                bigStatus.innerHTML = '';
+                continuerPhase2(valeur, grade);
+              }, 1500);
+            }
+          } else {
+            fermerFenetreConnexionDiscord();
+            verifyBtn.disabled = false;
+            scanBar.style.display = 'none';
+            setStatus('fail', 'Accès refusé.');
+            setBigStatus('fail', 'Refusé');
+          }
+        }, attenteRestante);
+      })
+      .catch((err) => {
+        fermerFenetreConnexionDiscord();
+        console.error('Erreur de vérification :', err);
+        arreterBarreScan();
+        scanBar.style.display = 'none';
+        verifyBtn.disabled = false;
+        setStatus('fail', 'Connexion à la base des accès impossible.');
+      });
+  }
+
+  function verifierDiscordId() {
+    if (!contexteEnAttente) return;
+    const saisie = discordInput.value.trim();
+
+    if (!saisie) {
+      setStatus('fail', 'Entrez votre identifiant Discord.');
+      return;
+    }
+
+    if (saisie === contexteEnAttente.discordIdAttendu) {
+      const valeur = contexteEnAttente.valeur;
+      const grade = contexteEnAttente.grade;
+      discordRow.style.display = 'none';
+      setStatus('ok', 'Identifiant Discord confirmé, accès complet accordé.');
+      setBigStatus('ok', 'Autorisé');
+      setTimeout(() => {
+        statusZone.classList.remove('active');
+        statusZone.innerHTML = '';
+        bigStatus.innerHTML = '';
+        continuerPhase2(valeur, grade);
+      }, 1200);
+    } else {
+      scanBar.style.display = 'none';
+      setStatus('fail', 'Identifiant Discord incorrect. Accès refusé.');
+      setBigStatus('fail', 'Refusé');
+    }
+  }
+
+  verifyBtn.addEventListener('click', verifier);
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') verifier(); });
+  discordVerifyBtn.addEventListener('click', verifierDiscordId);
+  discordInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') verifierDiscordId(); });
+
+  // Le Worker revient ici après la connexion Discord avec un jeton signé,
+  // valable 10 minutes. /verify contrôle sa signature avant tout accès.
+  async function finaliserRetourConnexionDiscord(statut, token) {
+    clearAll();
+    fermerFenetreConnexionDiscord();
+
+    if (statut !== 'success' || !token) {
+      setStatus('fail', statut === 'refused'
+        ? 'Ce compte Discord ne correspond pas au matricule demandé. Accès refusé.'
+        : 'La confirmation Discord a échoué. Réessaie.');
+      setBigStatus('fail', 'Refusé');
+      return;
+    }
+
+    try {
+      setStatus('scanning', 'Validation sécurisée de la connexion Discord…');
+      const reponse = await fetch(`${DISCORD_AUTH_WORKER_URL}/verify?token=${encodeURIComponent(token)}`);
+      if (!reponse.ok) throw new Error('Réponse du Worker invalide.');
+      const acces = await reponse.json();
+      const matricule = (acces.matricule || '').trim().toLowerCase();
+      if (!acces.ok || !matricule) throw new Error('Jeton Discord invalide.');
+
+      const matriculesValides = await chargerMatriculesDepuisSheet();
+      if (!matriculesValides.has(matricule)) throw new Error('Matricule introuvable.');
+
+      inputRow.style.display = 'none';
+      setStatus('ok', 'Compte Discord confirmé. Accès complet accordé.');
+      setBigStatus('ok', 'Autorisé');
+      setTimeout(() => continuerPhase2(matricule, matriculesValides.get(matricule)), 900);
+    } catch (erreur) {
+      console.error('Erreur de validation Discord :', erreur);
+      setStatus('fail', 'Impossible de valider la connexion Discord. Réessaie.');
+      setBigStatus('fail', 'Refusé');
+    }
+  }
+
+  async function traiterRetourConnexionDiscord() {
+    const url = new URL(window.location.href);
+    const statut = url.searchParams.get('discord_auth');
+    if (!statut) return;
+
+    const token = url.searchParams.get('token');
+    // Conserve l'URL complète du retour avant de retirer le jeton de la
+    // fenêtre popup. Elle permet de renvoyer la validation dans l'onglet
+    // Google Pages qui a lancé la vérification, même si postMessage est
+    // bloqué ou perdu pendant les redirections OAuth.
+    const urlRetour = url.toString();
+    ['discord_auth', 'token', 'reason'].forEach((cle) => url.searchParams.delete(cle));
+    window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
+    if (window.opener && !window.opener.closed) {
+      try {
+        // Le retour se fait dans la page Google Pages d'origine : elle traite
+        // alors le jeton dans son propre onglet et la popup peut se fermer.
+        window.opener.location.replace(urlRetour);
+      } catch (_) {
+        // Secours : la page principale reste capable de terminer le flux sans
+        // rechargement lorsque le navigateur refuse l'accès à location.
+        window.opener.postMessage({ type: 'mdc-discord-auth', statut, token }, window.location.origin);
+      }
+      window.close();
+      return;
+    }
+    await finaliserRetourConnexionDiscord(statut, token);
+  }
+
+  window.addEventListener('message', (event) => {
+    if (event.origin !== window.location.origin || event.data?.type !== 'mdc-discord-auth') return;
+    finaliserRetourConnexionDiscord(event.data.statut, event.data.token);
+  });
+
+  // Signale au site principal que le module est prêt à recevoir l'identité.
+  // Cette poignée de main évite de perdre la session si l'événement onload de
+  // l'iframe est bloqué, mis en cache ou déclenché trop tôt.
+  if (window.parent !== window) {
+    window.parent.postMessage({ type: 'gda-medecin-ready' }, window.location.origin);
+  }
+
+  /**
+   * L'identité provient exclusivement de la session déjà authentifiée par
+   * l'intranet GDA. Aucun second formulaire ni OAuth Discord n'est lancé ici.
+   */
+  let espaceMedicalInitialise = false;
+
+  async function ouvrirEspaceMedicalAvecIdentite(matricule, grade) {
+    if (espaceMedicalInitialise) return;
+    const matriculeSession = (matricule || '').trim();
+    const gradeSession = (grade || '').trim();
+    inputRow.style.display = 'none';
+    discordRow.style.display = 'none';
+    scanBar.style.display = 'none';
+    statusZone.classList.remove('active');
+    statusZone.innerHTML = '';
+    bigStatus.innerHTML = '';
+
+    if (!matriculeSession) {
+      return;
+    }
+
+    espaceMedicalInitialise = true;
+    await accorderAcces(matriculeSession, gradeSession);
+  }
+
+  function afficherErreurInitialisationMedicale(erreur) {
+    console.error('Initialisation MDC impossible :', erreur);
+    setStatus('fail', "Impossible d'ouvrir l'espace médical pour le moment.");
+    setBigStatus('fail', 'Erreur');
+  }
+
+  window.addEventListener('message', (event) => {
+    if (
+      event.origin !== window.location.origin ||
+      event.data?.type !== 'gda-session-medecin'
+    ) return;
+    ouvrirEspaceMedicalAvecIdentite(
+      event.data.identifiant,
+      event.data.grade
+    ).catch(afficherErreurInitialisationMedicale);
+  });
+
+  ouvrirEspaceMedicalAvecIdentite(
+    sessionStorage.getItem('identifiantUtilisateur'),
+    sessionStorage.getItem('gradeUtilisateur')
+  ).catch(afficherErreurInitialisationMedicale);
+
+  setTimeout(() => {
+    if (espaceMedicalInitialise) return;
+    setStatus('fail', "Session GDA introuvable. Ouvrez cet espace depuis l'intranet principal.");
+    setBigStatus('fail', 'Session requise');
+  }, 1500);
+
+  // === Donne de l'épaisseur au logo qui tourne (effet "pièce de monnaie") ===
+  // On empile plusieurs copies de l'image, décalées en profondeur (translateZ)
+  // et légèrement assombries, derrière la face avant. Le tout tourne ensemble
+  // (voir .coin { animation: spinY }), ce qui donne une tranche visible
+  // pendant la rotation, comme la tranche d'une pièce.
+  (function construireEpaisseurLogo() {
+    const coin = document.getElementById('coinLogo');
+    if (!coin) return;
+    const front = coin.querySelector('.coin-front');
+    if (!front) return;
+    const src = front.querySelector('img').getAttribute('src');
+    const alt = front.querySelector('img').getAttribute('alt') || '';
+    const NB_COUCHES = 9;
+    const PAS_Z = 1.4; // px entre chaque couche -> épaisseur totale ≈ NB_COUCHES * PAS_Z
+    for (let i = 1; i <= NB_COUCHES; i++) {
+      const couche = document.createElement('div');
+      couche.className = 'coin-layer coin-tranche';
+      couche.style.transform = `translateZ(-${(i * PAS_Z).toFixed(1)}px)`;
+      couche.style.filter = `brightness(${(1 - i * 0.07).toFixed(2)})`;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = alt;
+      couche.appendChild(img);
+      coin.insertBefore(couche, front);
+    }
+  })();
+</script>
+
+</body>
+</html>

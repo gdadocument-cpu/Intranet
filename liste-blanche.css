@@ -1,0 +1,327 @@
+.liste-blanche-module {
+  display: grid;
+  gap: 18px;
+  color: #edf7ff;
+}
+
+.liste-blanche-entete,
+.liste-blanche-ajout,
+.liste-blanche-carte,
+.liste-blanche-message {
+  background: rgba(7, 31, 51, 0.94);
+  border: 1px solid rgba(79, 181, 238, 0.25);
+  border-radius: 16px;
+}
+
+.liste-blanche-entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px;
+}
+
+.liste-blanche-entete span,
+.liste-blanche-entete p,
+.liste-blanche-identite span,
+.liste-blanche-ajout span,
+.liste-blanche-champs span {
+  color: #87a8bf;
+  font-size: 12px;
+}
+
+.liste-blanche-entete h3 {
+  margin: 4px 0;
+  font-size: 25px;
+}
+
+.liste-blanche-entete p {
+  margin: 0;
+}
+
+.liste-blanche-entete button,
+.liste-blanche-ajout button,
+.liste-blanche-actions button {
+  border: 1px solid #2d9edb;
+  border-radius: 999px;
+  background: #0b6c9d;
+  color: #fff;
+  padding: 10px 17px;
+  cursor: pointer;
+  transition: transform .16s ease, filter .16s ease;
+}
+
+.liste-blanche-entete button:hover,
+.liste-blanche-ajout button:hover,
+.liste-blanche-actions button:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.14);
+}
+
+.liste-blanche-ajout {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(230px, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+  padding: 18px;
+}
+
+.liste-blanche-ajout label,
+.liste-blanche-champs label {
+  display: grid;
+  gap: 7px;
+}
+
+.liste-blanche-ajout input,
+.liste-blanche-champs input {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid rgba(91, 178, 226, .32);
+  border-radius: 10px;
+  background: #071b2d;
+  color: #fff;
+  padding: 11px 12px;
+}
+
+.liste-blanche-retour {
+  grid-column: 1 / -1;
+  min-height: 18px;
+  margin: 0;
+  color: #6be5a2;
+}
+
+.liste-blanche-retour.erreur,
+.liste-blanche-message.erreur {
+  color: #ff858d;
+}
+
+.liste-blanche-resume {
+  color: #9db7c8;
+  padding: 0 4px;
+}
+
+.liste-blanche-liste {
+  display: grid;
+  gap: 12px;
+}
+
+.liste-blanche-carte {
+  padding: 16px;
+}
+
+.liste-blanche-identite {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 14px;
+}
+
+.liste-blanche-identite div {
+  display: grid;
+  gap: 3px;
+}
+
+.liste-blanche-badge {
+  border: 1px solid #f1b92e;
+  border-radius: 999px;
+  background: rgba(176, 117, 0, .28);
+  color: #ffd86c;
+  padding: 6px 11px;
+  font-size: 12px;
+}
+
+.liste-blanche-champs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.liste-blanche-carte details {
+  margin-top: 14px;
+  border-top: 1px solid rgba(95, 174, 216, .18);
+  padding-top: 12px;
+}
+
+.liste-blanche-carte summary {
+  color: #b8d8ec;
+  cursor: pointer;
+}
+
+.liste-blanche-permissions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.liste-blanche-permission {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid rgba(82, 157, 198, .17);
+  border-radius: 9px;
+  padding: 9px;
+  color: #c8ddeb;
+}
+
+.liste-blanche-permission.role-staff {
+  border-color: rgba(241, 185, 46, .55);
+  color: #ffd86c;
+}
+
+.liste-blanche-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.liste-blanche-actions .liste-blanche-retour {
+  flex: 1 1 240px;
+}
+
+.liste-blanche-actions button.danger {
+  border-color: #e44c5c;
+  background: #8e2634;
+}
+
+.liste-blanche-message {
+  padding: 22px;
+  text-align: center;
+  color: #9db7c8;
+}
+
+@media (max-width: 760px) {
+  .liste-blanche-entete,
+  .liste-blanche-ajout,
+  .liste-blanche-champs {
+    grid-template-columns: 1fr;
+  }
+
+  .liste-blanche-entete {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+/* Interface compacte à deux colonnes */
+.liste-blanche-colonnes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.liste-blanche-membres,
+.liste-blanche-droite {
+  background: rgba(7, 31, 51, .94);
+  border: 1px solid rgba(79, 181, 238, .25);
+  border-radius: 14px;
+  min-height: 210px;
+  padding: 13px;
+}
+
+.liste-blanche-titre {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.liste-blanche-titre h4,
+.liste-blanche-panneau h4 {
+  margin: 0;
+}
+
+.liste-blanche-titre span {
+  background: rgba(48, 157, 215, .16);
+  border-radius: 999px;
+  color: #8bd8ff;
+  padding: 4px 9px;
+}
+
+.liste-blanche-ligne {
+  align-items: stretch;
+  border: 1px solid rgba(82, 157, 198, .18);
+  border-radius: 10px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 38px;
+  overflow: hidden;
+}
+
+.liste-blanche-ligne + .liste-blanche-ligne {
+  margin-top: 7px;
+}
+
+.liste-blanche-ligne.active {
+  background: rgba(23, 115, 165, .2);
+  border-color: rgba(78, 190, 247, .62);
+}
+
+.liste-blanche-selection,
+.liste-blanche-crayon {
+  background: transparent;
+  border: 0;
+  color: #edf7ff;
+  cursor: pointer;
+}
+
+.liste-blanche-selection {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 10px 11px;
+  text-align: left;
+}
+
+.liste-blanche-selection > span {
+  display: grid;
+  min-width: 0;
+}
+
+.liste-blanche-selection small {
+  color: #87a8bf;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.liste-blanche-crayon {
+  border-left: 1px solid rgba(82, 157, 198, .22);
+  color: #85d8ff;
+  font-size: 19px;
+  transition: background .16s ease, transform .16s ease;
+}
+
+.liste-blanche-crayon:hover {
+  background: rgba(49, 157, 216, .22);
+  transform: scale(1.06);
+}
+
+.liste-blanche-panneau {
+  padding: 2px;
+}
+
+.liste-blanche-panneau .liste-blanche-identite {
+  border-bottom: 1px solid rgba(95, 174, 216, .18);
+  margin-bottom: 12px;
+  padding: 2px 2px 11px;
+}
+
+.liste-blanche-panneau .liste-blanche-permissions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.liste-blanche-champs[hidden] {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .liste-blanche-colonnes {
+    grid-template-columns: 1fr;
+  }
+}
