@@ -8,12 +8,12 @@ const SECURITY_HEADERS = {
     "frame-src 'self' https://dashboardmdcgda.github.io https://docs.google.com https://sites.google.com",
     "base-uri 'self'",
     "form-action 'self'",
-    "frame-ancestors 'none'",
+    "frame-ancestors 'self'",
     "object-src 'none'",
     "upgrade-insecure-requests"
   ].join("; "),
 
-  "X-Frame-Options": "DENY",
+  "X-Frame-Options": "SAMEORIGIN",
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "no-referrer",
   "Permissions-Policy":
