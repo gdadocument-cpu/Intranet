@@ -5,7 +5,7 @@ const SECURITY_HEADERS = {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "connect-src 'self' https://script.google.com https://script.googleusercontent.com",
-    "frame-src https://dashboardmdcgda.github.io https://docs.google.com https://sites.google.com",
+    "frame-src 'self' https://dashboardmdcgda.github.io https://docs.google.com https://sites.google.com",
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
