@@ -4249,14 +4249,25 @@ function construireInsigneGrade(grade) {
 
   async function accorderAcces(valeur, grade) {
     matriculeActif = (valeur || '').toLowerCase();
-    gradeActif = (grade || '').trim();
+    const gradeSecours = (grade || '').trim();
+    gradeActif = gradeSecours;
     document.querySelector('.console').classList.add('expanded');
     document.body.classList.add('mode-boutons');
 
     // Charge les permissions à jour avant de construire le menu, pour que le
     // bouton "Administration" (et donc l'onglet "Permission") apparaisse
     // correctement dès la connexion.
-    await chargerPermissions();
+    const chargementPermissions = chargerPermissions().catch((erreur) => {
+      console.warn('Permissions MDC momentanément indisponibles.', erreur);
+    });
+    try {
+      const gradesMdc = await chargerMatriculesDepuisSheet();
+      gradeActif = gradesMdc.get(matriculeActif) || 'Non renseigné';
+    } catch (erreur) {
+      console.warn('Grade MDC indisponible, utilisation du grade de secours.', erreur);
+      gradeActif = gradeSecours || 'Non renseigné';
+    }
+    await chargementPermissions;
 
     const docs = DOCUMENTS_SPECIAUX[valeur.toLowerCase()];
     const docsHtml = docs && docs.length
@@ -4282,8 +4293,8 @@ function construireInsigneGrade(grade) {
     actionZone.classList.add('open');
 
     badgeMatricule.textContent = valeur;
-    badgeGrade.textContent = grade || '—';
-    if (badgeInsigne) badgeInsigne.innerHTML = construireInsigneGrade(grade);
+    badgeGrade.textContent = gradeActif;
+    if (badgeInsigne) badgeInsigne.innerHTML = construireInsigneGrade(gradeActif);
     badgeCorner.classList.add('visible');
     document.getElementById('btnRefreshCorner')?.classList.add('visible');
   }

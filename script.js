@@ -92,7 +92,7 @@ function initialiserChargementProgressifGDA() {
 
 initialiserChargementProgressifGDA();
 
-const MEDECIN_GDA_URL = "medecin/index.html?v=20260721-4";
+const MEDECIN_GDA_URL = "medecin/index.html?v=20260721-5";
 const REGLEMENT_GDA_URL =
   "https://docs.google.com/document/d/1w2HBmk0RJdvvOpNMIZAMVUFpqUNaYaICc9SgZDBYrzA/preview";
 const GUIDE_GDA_URL =
