@@ -88,7 +88,8 @@ function creerLigneListeBlancheGDA(personne) {
   return `<div class="liste-blanche-ligne ${personne.id === listeBlancheSelectionId ? "active" : ""}">
     <button type="button" class="liste-blanche-selection" data-liste-blanche-selection="${echapperListeBlancheGDA(personne.id)}">
       <span><strong>${echapperListeBlancheGDA(personne.identifiant)}</strong><small>${echapperListeBlancheGDA(personne.discordId)}</small></span>
-      ${personne.roleStaff ? '<b class="liste-blanche-badge">Staff</b>' : ""}
+      ${personne.roleVisiteur ? '<b class="liste-blanche-badge visiteur">Visiteur</b>' :
+        (personne.roleStaff ? '<b class="liste-blanche-badge">Staff</b>' : "")}
     </button>
     <button type="button" class="liste-blanche-crayon" data-liste-blanche-editer="${echapperListeBlancheGDA(personne.id)}"
       title="Modifier cette personne" aria-label="Modifier ${echapperListeBlancheGDA(personne.identifiant)}">✎</button>
@@ -101,9 +102,10 @@ function creerPanneauListeBlancheGDA() {
   const accordees = Array.isArray(personne.permissions) ? personne.permissions : [];
   const cases = listeBlanchePermissions.map(permission => {
     const staff = permission.cle === "role_staff_total";
-    return `<label class="liste-blanche-permission ${staff ? "role-staff" : ""}">
+    const visiteur = permission.cle === "role_visiteur";
+    return `<label class="liste-blanche-permission ${staff ? "role-staff" : ""} ${visiteur ? "role-visiteur" : ""}">
       <input type="checkbox" data-permission="${echapperListeBlancheGDA(permission.cle)}"
-        ${staff ? "data-role-staff-total" : ""} ${accordees.includes(permission.cle) ? "checked" : ""}>
+        ${staff ? "data-role-staff-total" : ""} ${visiteur ? "data-role-visiteur" : ""} ${accordees.includes(permission.cle) ? "checked" : ""}>
       <span>${echapperListeBlancheGDA(permission.libelle)}</span>
     </label>`;
   }).join("");
@@ -111,7 +113,8 @@ function creerPanneauListeBlancheGDA() {
   return `<article class="liste-blanche-panneau" data-liste-blanche-id="${echapperListeBlancheGDA(personne.id)}">
     <div class="liste-blanche-identite">
       <div><strong>${echapperListeBlancheGDA(personne.identifiant)}</strong><span>Compte extérieur</span></div>
-      ${personne.roleStaff ? '<b class="liste-blanche-badge">Staff</b>' : ""}
+      ${personne.roleVisiteur ? '<b class="liste-blanche-badge visiteur">Visiteur</b>' :
+        (personne.roleStaff ? '<b class="liste-blanche-badge">Staff</b>' : "")}
     </div>
     <div class="liste-blanche-champs" ${listeBlancheModeEdition ? "" : "hidden"}>
       <label><span>Identifiant</span><input data-liste-blanche-identifiant maxlength="80" value="${echapperListeBlancheGDA(personne.identifiant)}" required></label>
@@ -148,15 +151,25 @@ function brancherListeBlancheGDA() {
     afficherListeBlancheGDA();
   });
   const staff = document.querySelector("[data-role-staff-total]");
+  const visiteur = document.querySelector("[data-role-visiteur]");
   staff?.addEventListener("change", () => appliquerEtatRoleStaffListeBlancheGDA(staff.closest(".liste-blanche-panneau")));
+  visiteur?.addEventListener("change", () => appliquerEtatRoleStaffListeBlancheGDA(visiteur.closest(".liste-blanche-panneau")));
   appliquerEtatRoleStaffListeBlancheGDA(staff?.closest(".liste-blanche-panneau"));
 }
 
 function appliquerEtatRoleStaffListeBlancheGDA(panneau) {
   if (!panneau) return;
   const staff = panneau.querySelector("[data-role-staff-total]");
+  const visiteur = panneau.querySelector("[data-role-visiteur]");
+  if (staff?.checked && visiteur?.checked) {
+    if (document.activeElement === visiteur) staff.checked = false;
+    else visiteur.checked = false;
+  }
   panneau.querySelectorAll("[data-permission]").forEach(casePermission => {
-    if (casePermission !== staff) casePermission.disabled = !!staff?.checked;
+    if (casePermission !== staff && casePermission !== visiteur) {
+      casePermission.disabled = !!staff?.checked || !!visiteur?.checked;
+      if (visiteur?.checked) casePermission.checked = false;
+    }
   });
 }
 

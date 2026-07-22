@@ -1118,8 +1118,32 @@ function utilisateurAPermission(permission) {
   ].includes(permission);
 }
 
+function utilisateurEstVisiteurGDA() {
+  return utilisateurAPermission("role_visiteur");
+}
+
+function appliquerModeVisiteurGDA() {
+  const visiteur = utilisateurEstVisiteurGDA();
+  document.body.classList.toggle("mode-visiteur", visiteur);
+  if (!visiteur) return;
+  document.querySelectorAll("form input, form textarea, form select, form button").forEach(function (controle) {
+    const recherche = controle.matches('[type="search"], [data-recherche]') ||
+      /recherch/i.test(controle.id || "") ||
+      /recherch/i.test(controle.getAttribute("placeholder") || "");
+    if (!recherche) {
+      controle.disabled = true;
+      controle.title = "Mode Visiteur : consultation uniquement";
+    }
+  });
+}
+
+new MutationObserver(function () {
+  if (utilisateurEstVisiteurGDA()) appliquerModeVisiteurGDA();
+}).observe(document.body, { childList: true, subtree: true });
+
 
 function utilisateurEstOfficierGDA() {
+  if (utilisateurEstVisiteurGDA()) return true;
   if (utilisateurAPermission("role_staff_total")) return true;
   const grade = String(sessionStorage.getItem("gradeUtilisateur") || "")
     .normalize("NFD")
@@ -1139,6 +1163,7 @@ function utilisateurEstOfficierGDA() {
 }
 
 function utilisateurEstOfficierSuperieurGDA() {
+  if (utilisateurEstVisiteurGDA()) return true;
   if (utilisateurAPermission("role_staff_total")) return true;
   const grade = String(sessionStorage.getItem("gradeUtilisateur") || "")
     .normalize("NFD")
@@ -1170,6 +1195,7 @@ function normaliserSpecialisationsUtilisateurGDA() {
 }
 
 function utilisateurPossedeSpecialisationGDA(specialisation) {
+  if (utilisateurEstVisiteurGDA()) return true;
   const specialisations = normaliserSpecialisationsUtilisateurGDA();
   const cible = String(specialisation || "")
     .normalize("NFD")
@@ -1235,6 +1261,8 @@ function utilisateurPeutAccederEspaceInstructeurGDA() {
 }
 
 function appliquerVisibiliteModulesGDA() {
+  appliquerModeVisiteurGDA();
+  const visiteur = utilisateurEstVisiteurGDA();
   const officier = utilisateurEstOfficierGDA();
   const specialisationInstructeur =
     utilisateurPossedeSpecialisationGDA("Instructeur");
@@ -1251,7 +1279,7 @@ function appliquerVisibiliteModulesGDA() {
   if (menuInstructeurOuvert && !accesEspaceInstructeur) {
     menuInstructeurOuvert = false;
   }
-  const accesStaffAdministration = utilisateurAPermission("administration_staff");
+  const accesStaffAdministration = !visiteur && utilisateurAPermission("administration_staff");
   if (menuAdministrationOuvert && !accesStaffAdministration) {
     menuAdministrationOuvert = false;
   }
@@ -1401,6 +1429,7 @@ function appliquerVisibiliteModulesGDA() {
 
 function ouvrirMenuAdministrationGDA() {
   if (
+    utilisateurEstVisiteurGDA() ||
     !utilisateurAPermission("administration_staff")
   ) return;
 

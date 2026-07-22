@@ -131,6 +131,12 @@
   font-size: 12px;
 }
 
+.liste-blanche-badge.visiteur {
+  color: #d7efff;
+  border-color: #38aee8;
+  background: rgba(23, 117, 164, 0.24);
+}
+
 .liste-blanche-champs {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -168,6 +174,12 @@
 .liste-blanche-permission.role-staff {
   border-color: rgba(241, 185, 46, .55);
   color: #ffd86c;
+}
+
+
+.liste-blanche-permission.role-visiteur {
+  border-color: rgba(56, 174, 232, 0.72);
+  color: #d7efff;
 }
 
 .liste-blanche-actions {

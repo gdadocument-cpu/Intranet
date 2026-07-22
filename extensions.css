@@ -193,3 +193,25 @@ button:disabled { cursor: not-allowed; filter: grayscale(.35); opacity: .58; }
   .demande-absence-carte,
   .demande-absence-officier-details { animation: none; }
 }
+/* Les comptes extérieurs portant le rôle Visiteur restent strictement en lecture seule. */
+body.mode-visiteur [data-modifier],
+body.mode-visiteur [data-supprimer],
+body.mode-visiteur [data-enregistrer],
+body.mode-visiteur [data-ajouter],
+body.mode-visiteur [data-archiver],
+body.mode-visiteur [data-accepter],
+body.mode-visiteur [data-refuser],
+body.mode-visiteur [class*="bouton-modifier"],
+body.mode-visiteur [class*="bouton-supprimer"],
+body.mode-visiteur [class*="bouton-ajouter"],
+body.mode-visiteur button[type="submit"],
+body.mode-visiteur .danger {
+  display: none !important;
+}
+
+body.mode-visiteur form input:disabled,
+body.mode-visiteur form textarea:disabled,
+body.mode-visiteur form select:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
