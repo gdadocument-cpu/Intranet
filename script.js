@@ -1119,7 +1119,10 @@ function utilisateurAPermission(permission) {
 }
 
 function utilisateurEstVisiteurGDA() {
-  return utilisateurAPermission("role_visiteur");
+  return utilisateurAPermission("role_visiteur") &&
+    sessionStorage.getItem("proprietaireUtilisateur") !== "true" &&
+    sessionStorage.getItem("coproprietaireUtilisateur") !== "true" &&
+    !utilisateurAPermission("role_staff_total");
 }
 
 function appliquerModeVisiteurGDA() {
@@ -1279,7 +1282,11 @@ function appliquerVisibiliteModulesGDA() {
   if (menuInstructeurOuvert && !accesEspaceInstructeur) {
     menuInstructeurOuvert = false;
   }
-  const accesStaffAdministration = !visiteur && utilisateurAPermission("administration_staff");
+  const accesStaffAdministration = !visiteur && (
+    utilisateurEstProprietaireOuCoproprietaireGDA() ||
+    utilisateurAPermission("role_staff_total") ||
+    utilisateurAPermission("administration_staff")
+  );
   if (menuAdministrationOuvert && !accesStaffAdministration) {
     menuAdministrationOuvert = false;
   }
