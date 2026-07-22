@@ -2008,6 +2008,18 @@ async function actualiserPresenceEnLigne() {
 
     if (!resultat.success) return;
 
+    if (Array.isArray(resultat.permissions)) {
+      const anciennesPermissions = sessionStorage.getItem("permissionsUtilisateur") || "[]";
+      const nouvellesPermissions = JSON.stringify(resultat.permissions);
+      sessionStorage.setItem("permissionsUtilisateur", nouvellesPermissions);
+      sessionStorage.setItem("proprietaireUtilisateur", resultat.proprietaire === true ? "true" : "false");
+      sessionStorage.setItem("coproprietaireUtilisateur", resultat.coproprietaire === true ? "true" : "false");
+      if (anciennesPermissions !== nouvellesPermissions) {
+        menuAdministrationOuvert = false;
+        appliquerVisibiliteModulesGDA();
+      }
+    }
+
     utilisateursEnLigne =
       Array.isArray(resultat.utilisateurs)
         ? resultat.utilisateurs
