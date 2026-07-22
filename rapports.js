@@ -19,6 +19,7 @@ let rapportsCharges = false;
 rapportsButton.addEventListener(
   "click",
   function () {
+    definirModuleGdaActif("rapports-officier");
     if (rapportsCharges) {
       afficherRapports();
     } else {
@@ -103,6 +104,7 @@ async function chargerRapports(silencieux) {
 }
 
 function afficherRapports() {
+  if (!moduleGdaEstActif("rapports-officier")) return;
   rapportsWorkspace.innerHTML = `
     <section id="rapportsModule">
       <header class="rapports-header">
@@ -1249,6 +1251,7 @@ function formaterTexteRapport(texte) {
 }
 
 function afficherErreurRapports(message) {
+  if (!moduleGdaEstActif("rapports-officier")) return;
   rapportsWorkspace.innerHTML = `
     <section id="rapportsModule">
       <div class="rapports-message rapports-message-erreur">

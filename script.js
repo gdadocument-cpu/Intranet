@@ -1481,6 +1481,7 @@ function ouvrirMenuAdministrationGDA() {
 
 function fermerMenuAdministrationGDA() {
   menuAdministrationOuvert = false;
+  definirModuleGdaActif("");
   appliquerVisibiliteModulesGDA();
   afficherAccueilMenuGDA(
     "Bienvenue dans l’interface GDA",
@@ -1505,6 +1506,7 @@ function ouvrirMenuOfficierGDA() {
 
 function fermerMenuOfficierGDA() {
   menuOfficierOuvert = false;
+  definirModuleGdaActif("");
   appliquerVisibiliteModulesGDA();
   afficherAccueilMenuGDA(
     "Bienvenue dans l’interface GDA",
@@ -1591,6 +1593,7 @@ function ouvrirMenuSpecialisationsGDA() {
 function fermerMenuSpecialisationsGDA() {
   menuSpecialisationsOuvert = false;
   menuInstructeurOuvert = false;
+  definirModuleGdaActif("");
   appliquerVisibiliteModulesGDA();
   afficherAccueilMenuGDA(
     "Bienvenue dans l’interface GDA",
@@ -1614,6 +1617,7 @@ function ouvrirMenuLiensUtilesGDA() {
 
 function fermerMenuLiensUtilesGDA() {
   menuLiensUtilesOuvert = false;
+  definirModuleGdaActif("");
   appliquerVisibiliteModulesGDA();
   afficherAccueilMenuGDA(
     "Bienvenue dans l’interface GDA",

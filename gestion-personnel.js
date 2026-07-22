@@ -25,6 +25,7 @@ let gestionLogEnEdition = null;
 gestionPersonnelButton.addEventListener(
   "click",
   function () {
+    definirModuleGdaActif("gestion-personnel");
     if (gestionPersonnelChargee) {
       afficherGestionPersonnel();
     } else {
@@ -120,6 +121,7 @@ function appliquerDonneesGestionPersonnel(resultat, complet) {
 }
 
 function afficherGestionPersonnel() {
+  if (!moduleGdaEstActif("gestion-personnel")) return;
   gestionPersonnelWorkspace.innerHTML = `
     <section id="gestionPersonnelModule">
       <header class="gestion-header">
@@ -1201,6 +1203,7 @@ function formaterTexteGestion(texte) {
 }
 
 function afficherErreurGestion(message) {
+  if (!moduleGdaEstActif("gestion-personnel")) return;
   gestionPersonnelWorkspace.innerHTML = `
     <section id="gestionPersonnelModule">
       <div class="gestion-message gestion-erreur">

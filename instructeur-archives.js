@@ -108,6 +108,7 @@ async function ouvrirArchivesInstructeur(forcer) {
     enregistrerCacheArchivesInstructeur();
     afficherArchivesInstructeur();
   } catch (erreur) {
+    if (!moduleGdaEstActif("instructeur-archives")) return;
     if (donneesAffichees) {
       if (typeof afficherNotificationGDA === "function") {
         afficherNotificationGDA("Actualisation des archives indisponible.", "erreur");

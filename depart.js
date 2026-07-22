@@ -32,6 +32,7 @@ if (departButton) {
   departButton.addEventListener(
     "click",
     function () {
+      definirModuleGdaActif("departs-officier");
       if (departsCharges) {
         afficherAccueilDeparts();
       } else {
@@ -143,6 +144,7 @@ function appliquerDonneesDeparts(resultat, avecMembres) {
 ================================================== */
 
 function afficherAccueilDeparts() {
+  if (!moduleGdaEstActif("departs-officier")) return;
   const resultatsRecherche =
     obtenirResultatsRechercheDepart();
 
@@ -3015,6 +3017,7 @@ async function supprimerDossierDepart(
 function afficherErreurDepart(
   message
 ) {
+  if (!moduleGdaEstActif("departs-officier")) return;
   departWorkspace.innerHTML = `
     <section id="departModule">
 

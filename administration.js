@@ -24,6 +24,7 @@ if (permissionsButton) {
   permissionsButton.addEventListener(
     "click",
     function () {
+      definirModuleGdaActif("administration-permissions");
       if (administrationChargee) {
         afficherAdministration();
       } else {
@@ -84,6 +85,7 @@ async function chargerAdministration() {
     administrationChargee = true;
     afficherAdministration();
   } catch (erreur) {
+    if (!moduleGdaEstActif("administration-permissions")) return;
     administrationWorkspace.innerHTML = `
       <section id="administrationModule">
         <div class="administration-message administration-erreur">
@@ -95,6 +97,7 @@ async function chargerAdministration() {
 }
 
 function afficherAdministration() {
+  if (!moduleGdaEstActif("administration-permissions")) return;
   const totalStaff = administrationUtilisateurs.filter(function (utilisateur) {
     return Array.isArray(utilisateur.permissions) &&
       utilisateur.permissions.includes("administration_staff");

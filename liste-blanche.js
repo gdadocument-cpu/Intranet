@@ -50,6 +50,7 @@ async function chargerListeBlancheGDA() {
     }
     afficherListeBlancheGDA();
   } catch (erreur) {
+    if (!moduleGdaEstActif("administration-liste-blanche")) return;
     workspace.innerHTML = `<section class="liste-blanche-module"><div class="liste-blanche-message erreur">${echapperListeBlancheGDA(erreur.message)}</div></section>`;
   }
 }

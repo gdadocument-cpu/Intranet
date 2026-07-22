@@ -353,6 +353,7 @@ async function chargerHistoriqueRapportsInstructeur(forcer, silencieux) {
     enregistrerCacheRapportsInstructeur();
     afficherHistoriqueRapportsInstructeur();
   } catch (erreur) {
+    if (!moduleGdaEstActif("instructeur-historique-rapports")) return;
     if (silencieux) {
       if (typeof afficherNotificationGDA === "function") {
         afficherNotificationGDA("Actualisation des rapports Instructeur indisponible.", "erreur");

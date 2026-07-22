@@ -29,6 +29,7 @@ let rechercheAbsence = "";
 disponibilitesButton.addEventListener(
   "click",
   function () {
+    definirModuleGdaActif("disponibilites-officier");
     if (disponibilitesChargees) {
       afficherDisponibilites();
     } else {
@@ -145,6 +146,7 @@ function appliquerDonneesDisponibilites(resultat, avecMembres) {
 ================================================== */
 
 function afficherDisponibilites() {
+  if (!moduleGdaEstActif("disponibilites-officier")) return;
   const totalEffectif =
     disponibilitesMembres.length;
 
@@ -2038,6 +2040,7 @@ function obtenirRangGradeDisponibilites(
 function afficherErreurDisponibilites(
   message
 ) {
+  if (!moduleGdaEstActif("disponibilites-officier")) return;
   disponibilitesWorkspace.innerHTML = `
     <section id="disponibilitesModule">
 

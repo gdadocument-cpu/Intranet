@@ -14,6 +14,7 @@ let effectifCharge = false;
 
 
 effectifButton.addEventListener("click", function () {
+  definirModuleGdaActif("effectif-officier");
   if (effectifCharge) {
     afficherEffectif(effectifMembres);
   } else {
@@ -124,6 +125,7 @@ window.invaliderCacheEffectifGDA = invaliderCacheEffectifGDA;
 
 
 function afficherEffectif(membres) {
+  if (!moduleGdaEstActif("effectif-officier")) return;
   const groupes = {
     "officiers-superieurs": [],
     "officiers": [],
@@ -1371,6 +1373,7 @@ async function enregistrerNoteMembre(
 
 
 function afficherErreurEffectif(message) {
+  if (!moduleGdaEstActif("effectif-officier")) return;
   workspace.innerHTML = `
     <section id="effectifModule">
 

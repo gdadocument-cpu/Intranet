@@ -15,6 +15,7 @@ if (logsButton) {
       !utilisateurAPermission("administration_staff") ||
       !utilisateurAPermission("administration_logs")
     ) return;
+    definirModuleGdaActif("administration-logs");
     if (journalActionsChargeGDA) {
       afficherJournalActionsGDA();
       chargerJournalActionsGDA(false, true);
@@ -68,6 +69,7 @@ async function chargerJournalActionsGDA(forcer, silencieux) {
     journalActionsChargeGDA = true;
     afficherJournalActionsGDA();
   } catch (erreur) {
+    if (!moduleGdaEstActif("administration-logs")) return;
     logsWorkspace.innerHTML = `
       <section id="logsModule">
         <div class="logs-message logs-erreur">
@@ -79,6 +81,7 @@ async function chargerJournalActionsGDA(forcer, silencieux) {
 }
 
 function afficherJournalActionsGDA() {
+  if (!moduleGdaEstActif("administration-logs")) return;
   if (
     !utilisateurAPermission("administration_staff") ||
     !utilisateurAPermission("administration_logs")
