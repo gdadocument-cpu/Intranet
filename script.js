@@ -290,6 +290,9 @@ const ACTIONS_LECTURE_GDA = new Set([
 const cacheLecturesGDA = new Map();
 const requetesLecturesGDA = new Map();
 const actualisationsForceesGDA = new Set();
+const ACTIONS_SANS_INVALIDATION_CACHE_GDA = new Set([
+  "presenceEnLigne"
+]);
 const DUREE_CACHE_LECTURE_GDA = 2 * 60 * 1000;
 const CLE_CACHE_SESSION_API_GDA = "gdaApiCacheSessionV2";
 const TAILLE_MAX_CACHE_SESSION_GDA = 1500000;
@@ -315,9 +318,15 @@ const INVALIDATIONS_CACHE_GDA = {
   deciderSuiviFormationInstructeur: ["recupererSuivisFormationInstructeur", "recupererMesSuivisInstructeur", "recupererArchivesInstructeur", "recupererEffectif", "recupererEffectifPublic", "recupererGestionPersonnel", "recupererAdministration", "recupererDeparts"],
   mettreAJourMonSuiviInstructeur: ["recupererSuivisFormationInstructeur", "recupererMesSuivisInstructeur"],
   supprimerArchiveInstructeur: ["recupererArchivesInstructeur"],
-  ajouterListeBlanche: ["recupererAdministration"],
-  modifierListeBlanche: ["recupererAdministration"],
-  supprimerListeBlanche: ["recupererAdministration"],
+  ajouterListeBlanche: ["recupererAdministration", "recupererListeBlanche"],
+  modifierListeBlanche: ["recupererAdministration", "recupererListeBlanche"],
+  supprimerListeBlanche: ["recupererAdministration", "recupererListeBlanche"],
+  enregistrerPermissions: ["recupererAdministration", "recupererListeBlanche"],
+  definirCoproprietaire: ["recupererAdministration", "recupererListeBlanche"],
+  transfererPropriete: ["recupererAdministration", "recupererListeBlanche"],
+  marquerNotificationsLues: ["recupererNotifications"],
+  effacerNotifications: ["recupererNotifications"],
+  actualiserEffectifPublic: ["recupererEffectifPublic"],
   ajouterRecommandationObservation: ["recupererRecommandationsObservations", "recupererEffectif"],
   modifierRecommandationObservation: ["recupererRecommandationsObservations", "recupererEffectif"],
   purgerRecommandationsObservations: ["recupererRecommandationsObservations", "recupererEffectif"]
@@ -494,7 +503,7 @@ window.fetch = function(ressource, options) {
     if (!lecture) {
       if (action && INVALIDATIONS_CACHE_GDA[action]) {
         invaliderCacheLecturesActionsGDA(INVALIDATIONS_CACHE_GDA[action]);
-      } else if (action) {
+      } else if (action && !ACTIONS_SANS_INVALIDATION_CACHE_GDA.has(action)) {
         viderCacheLecturesGDA();
       }
       return fetchApiAvecDelaiGDA(url.toString(), options).then(securiserReponseJsonGDA);
@@ -579,7 +588,6 @@ function prechargerDonneesGDA() {
   if (utilisateurEstOfficierGDA()) {
     actions.unshift("recupererEffectif");
     actions.push(
-      "recupererEffectif",
       "recupererDisponibilites",
       "recupererDeparts",
       "recupererRapports",
@@ -617,15 +625,19 @@ function prechargerDonneesGDA() {
         }
       }
     };
-    // Deux lectures parallèles au maximum : Apps Script répond plus vite et
-    // les clics restent fluides même lorsque plusieurs modules sont préchargés.
-    Promise.allSettled([executerSuivante(), executerSuivante()]);
+    // Trois lectures parallèles préparent plus vite les premiers onglets sans
+    // déclencher une rafale excessive sur Google Apps Script.
+    Promise.allSettled([
+      executerSuivante(),
+      executerSuivante(),
+      executerSuivante()
+    ]);
   };
 
   if ("requestIdleCallback" in window) {
-    window.requestIdleCallback(demarrer, { timeout: 800 });
+    window.requestIdleCallback(demarrer, { timeout: 150 });
   } else {
-    window.setTimeout(demarrer, 300);
+    window.setTimeout(demarrer, 80);
   }
 }
 
