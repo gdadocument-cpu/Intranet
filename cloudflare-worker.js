@@ -331,6 +331,313 @@ async function syncEffectif(request, env) {
   });
 }
 
+async function empreinteSessionD1(token) {
+  const donnees = new TextEncoder().encode(cleanText(token, 500));
+  const empreinte = await crypto.subtle.digest("SHA-256", donnees);
+  return Array.from(new Uint8Array(empreinte))
+    .map((octet) => octet.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function lireJetonAutorisation(request) {
+  return cleanText(
+    request.headers.get("Authorization"),
+    1000
+  ).replace(/^Bearer\s+/i, "");
+}
+
+async function synchroniserSessionD1(request, env) {
+  if (!env.DB) {
+    return jsonResponse(
+      { success: false, message: "Binding D1 DB absent." },
+      503
+    );
+  }
+  if (!authorizedSync(request, env)) {
+    return jsonResponse(
+      { success: false, message: "Synchronisation non autorisée." },
+      401
+    );
+  }
+
+  let payload;
+  try {
+    payload = await request.json();
+  } catch {
+    return jsonResponse(
+      { success: false, message: "Corps JSON invalide." },
+      400
+    );
+  }
+
+  const token = cleanText(payload?.sessionToken, 500);
+  const matricule = cleanText(payload?.matricule, 120);
+  const discordId = nullableText(payload?.discordId, 40);
+  const permissions = uniqueTexts(payload?.permissions);
+  const proprietaire = payload?.proprietaire === true ? 1 : 0;
+  const coproprietaire = payload?.coproprietaire === true ? 1 : 0;
+  const maintenant = Date.now();
+  const expireLe = Number(payload?.expireLe) > maintenant
+    ? Number(payload.expireLe)
+    : maintenant + (6 * 60 * 60 * 1000);
+
+  if (!/^[a-f0-9]{64}$/i.test(token) || !matricule) {
+    return jsonResponse(
+      { success: false, message: "Session ou matricule invalide." },
+      400
+    );
+  }
+
+  const tokenHash = await empreinteSessionD1(token);
+  await env.DB.prepare(`
+    INSERT INTO sessions (
+      token_hash, matricule, discord_id, permissions_json,
+      proprietaire, coproprietaire, expire_le, cree_le,
+      derniere_utilisation, actif
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+    ON CONFLICT(token_hash) DO UPDATE SET
+      matricule = excluded.matricule,
+      discord_id = excluded.discord_id,
+      permissions_json = excluded.permissions_json,
+      proprietaire = excluded.proprietaire,
+      coproprietaire = excluded.coproprietaire,
+      expire_le = excluded.expire_le,
+      derniere_utilisation = excluded.derniere_utilisation,
+      actif = 1
+  `).bind(
+    tokenHash,
+    matricule,
+    discordId,
+    JSON.stringify(permissions),
+    proprietaire,
+    coproprietaire,
+    expireLe,
+    maintenant,
+    maintenant
+  ).run();
+
+  await env.DB.prepare(`
+    DELETE FROM sessions
+    WHERE expire_le <= ? OR actif = 0
+  `).bind(maintenant).run();
+
+  return jsonResponse({
+    success: true,
+    matricule,
+    expireLe
+  });
+}
+
+async function exigerSessionD1(request, env) {
+  const token = lireJetonAutorisation(request);
+  if (!/^[a-f0-9]{64}$/i.test(token)) {
+    return {
+      success: false,
+      status: 401,
+      message: "Session Cloudflare absente."
+    };
+  }
+
+  const tokenHash = await empreinteSessionD1(token);
+  const maintenant = Date.now();
+  const session = await env.DB.prepare(`
+    SELECT
+      token_hash, matricule, discord_id, permissions_json,
+      proprietaire, coproprietaire, expire_le
+    FROM sessions
+    WHERE token_hash = ?
+      AND actif = 1
+      AND expire_le > ?
+    LIMIT 1
+  `).bind(tokenHash, maintenant).first();
+
+  if (!session) {
+    return {
+      success: false,
+      status: 401,
+      message: "Session Cloudflare expirée ou inconnue."
+    };
+  }
+
+  let permissions = [];
+  try {
+    permissions = JSON.parse(session.permissions_json || "[]");
+  } catch {
+    permissions = [];
+  }
+
+  await env.DB.prepare(`
+    UPDATE sessions
+    SET derniere_utilisation = ?
+    WHERE token_hash = ?
+  `).bind(maintenant, tokenHash).run();
+
+  return {
+    success: true,
+    matricule: cleanText(session.matricule, 120),
+    discordId: cleanText(session.discord_id, 40),
+    permissions: Array.isArray(permissions) ? permissions : [],
+    proprietaire: Number(session.proprietaire) === 1,
+    coproprietaire: Number(session.coproprietaire) === 1
+  };
+}
+
+function sessionPeutVoirEffectifOfficier(session, grade) {
+  const gradesOfficiers = new Set([
+    "lieutenant-colonel",
+    "commandant",
+    "vice-commandant",
+    "capitaine",
+    "lieutenant",
+    "sous-lieutenant",
+    "aspirant"
+  ]);
+  const permissions = new Set(session.permissions || []);
+  return (
+    session.proprietaire === true ||
+    session.coproprietaire === true ||
+    permissions.has("role_staff_total") ||
+    permissions.has("effectif_modifier") ||
+    gradesOfficiers.has(normalizedKey(grade))
+  );
+}
+
+async function recupererEffectifD1(request, env) {
+  if (!env.DB) {
+    return jsonResponse(
+      { success: false, message: "Binding D1 DB absent." },
+      503
+    );
+  }
+
+  const session = await exigerSessionD1(request, env);
+  if (!session.success) {
+    return jsonResponse(
+      { success: false, message: session.message },
+      session.status
+    );
+  }
+
+  const membreConnecte = await env.DB.prepare(`
+    SELECT grade
+    FROM effectif
+    WHERE matricule = ? COLLATE NOCASE
+      AND actif = 1
+    LIMIT 1
+  `).bind(session.matricule).first();
+  const gradeConnecte = membreConnecte
+    ? cleanText(membreConnecte.grade, 80)
+    : "";
+
+  if (!sessionPeutVoirEffectifOfficier(session, gradeConnecte)) {
+    return jsonResponse(
+      {
+        success: false,
+        message: "Accès à l’effectif officier refusé."
+      },
+      403
+    );
+  }
+
+  const [effectif, medailles, specialisations] = await Promise.all([
+    env.DB.prepare(`
+      SELECT
+        id, matricule, grade, steam_id, discord_id, presence,
+        nombre_rapports, nombre_observations, nombre_recommandations,
+        date_promotion_retrogradation, date_entree_gda, sanction,
+        notes, periode_probatoire
+      FROM effectif
+      WHERE actif = 1
+      ORDER BY id
+    `).all(),
+    env.DB.prepare(`
+      SELECT em.effectif_id, m.nom
+      FROM effectif_medailles em
+      INNER JOIN medailles m ON m.id = em.medaille_id
+      WHERE em.actif = 1 AND m.actif = 1
+      ORDER BY m.nom
+    `).all(),
+    env.DB.prepare(`
+      SELECT es.effectif_id, s.nom
+      FROM effectif_specialisations es
+      INNER JOIN specialisations s ON s.id = es.specialisation_id
+      WHERE s.actif = 1
+      ORDER BY s.nom
+    `).all()
+  ]);
+
+  const medaillesParMembre = new Map();
+  const specialisationsParMembre = new Map();
+  medailles.results.forEach((ligne) => {
+    const liste = medaillesParMembre.get(ligne.effectif_id) || [];
+    liste.push(cleanText(ligne.nom, 250));
+    medaillesParMembre.set(ligne.effectif_id, liste);
+  });
+  specialisations.results.forEach((ligne) => {
+    const liste = specialisationsParMembre.get(ligne.effectif_id) || [];
+    liste.push(cleanText(ligne.nom, 250));
+    specialisationsParMembre.set(ligne.effectif_id, liste);
+  });
+
+  const membres = effectif.results.map((ligne) => ({
+    nom: cleanText(ligne.matricule, 120),
+    grade: cleanText(ligne.grade, 80),
+    steamId: cleanText(ligne.steam_id, 40),
+    discordId: cleanText(ligne.discord_id, 40),
+    presence: cleanText(ligne.presence, 30) || "Présent",
+    nombreRapports: positiveInteger(ligne.nombre_rapports),
+    observation: positiveInteger(ligne.nombre_observations),
+    recommandation: positiveInteger(ligne.nombre_recommandations),
+    datePromotionRetro: cleanText(
+      ligne.date_promotion_retrogradation,
+      30
+    ),
+    dateEntree: cleanText(ligne.date_entree_gda, 30),
+    sanction: cleanText(ligne.sanction, 250) || "Clean",
+    notes: cleanText(ligne.notes, 4000),
+    periodeProbatoire: Number(ligne.periode_probatoire) === 1,
+    specialisation: (
+      specialisationsParMembre.get(ligne.id) || []
+    ).join(", "),
+    medaille: (
+      medaillesParMembre.get(ligne.id) || []
+    ).join("; ")
+  }));
+  const permissions = new Set(session.permissions || []);
+
+  return jsonResponse({
+    success: true,
+    source: "D1",
+    membres,
+    peutModifier:
+      session.proprietaire ||
+      session.coproprietaire ||
+      permissions.has("role_staff_total") ||
+      permissions.has("effectif_modifier"),
+    peutAjouter:
+      session.proprietaire ||
+      session.coproprietaire ||
+      permissions.has("role_staff_total"),
+    grades: [
+      "Lieutenant-Colonel", "Commandant", "Vice-Commandant",
+      "Capitaine", "Lieutenant", "Sous-Lieutenant", "Aspirant",
+      "Major", "Adjudant-Chef", "Adjudant", "Sergent-Chef",
+      "Sergent", "Caporal-Chef", "Caporal", "Ancien GDA"
+    ],
+    sanctions: [
+      "Clean", "Mise à pied", "Averto",
+      "Pénalité", "Blâme 1", "Blâme 2"
+    ],
+    medailles: uniqueTexts(
+      medailles.results.map((ligne) => ligne.nom)
+    ),
+    specialisations: uniqueTexts(
+      specialisations.results.map((ligne) => ligne.nom)
+    )
+  });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -349,6 +656,46 @@ export default {
             message: error instanceof Error
               ? error.message
               : "Erreur de synchronisation D1."
+          },
+          500
+        );
+      }
+    }
+
+    if (
+      url.pathname === "/api/synchronisation/session" &&
+      request.method === "POST"
+    ) {
+      try {
+        return await synchroniserSessionD1(request, env);
+      } catch (error) {
+        console.error("Synchronisation session D1", error);
+        return jsonResponse(
+          {
+            success: false,
+            message: error instanceof Error
+              ? error.message
+              : "Erreur de synchronisation de session."
+          },
+          500
+        );
+      }
+    }
+
+    if (
+      url.pathname === "/api/effectif" &&
+      request.method === "GET"
+    ) {
+      try {
+        return await recupererEffectifD1(request, env);
+      } catch (error) {
+        console.error("Lecture effectif D1", error);
+        return jsonResponse(
+          {
+            success: false,
+            message: error instanceof Error
+              ? error.message
+              : "Erreur de lecture D1."
           },
           500
         );
