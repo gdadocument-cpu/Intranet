@@ -4,21 +4,12 @@
   "name": "intranet-gda",
   "main": "./cloudflare-worker.js",
   "compatibility_date": "2026-07-17",
-  "keep_vars": true,
 
   "assets": {
     "directory": "./",
     "binding": "ASSETS",
     "run_worker_first": true
   },
-
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "intranet-gda",
-      "database_id": "bc648e45-53bb-4e23-a090-05f5cdb66577"
-    }
-  ],
 
   "observability": {
     "enabled": true,

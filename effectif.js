@@ -26,8 +26,6 @@ effectifButton.addEventListener("click", function () {
 async function chargerEffectif() {
   const identifiant =
     sessionStorage.getItem("identifiantUtilisateur") || "";
-  const sessionToken =
-    sessionStorage.getItem("sessionTokenDiscord") || "";
 
 
   // Une requête de préchargement peut déjà être en cours sans que les
@@ -51,48 +49,18 @@ async function chargerEffectif() {
   }
 
   try {
-    let resultat = null;
-
-    // Cloudflare D1 est la source rapide principale. En local ou si D1 est
-    // momentanément indisponible, Apps Script reste le secours automatique.
-    if (
-      sessionToken &&
-      /^https?:$/i.test(window.location.protocol)
-    ) {
-      try {
-        const reponseD1 = await fetch("/api/effectif", {
-          method: "GET",
-          headers: {
-            Authorization: "Bearer " + sessionToken
-          },
-          cache: "no-store"
-        });
-        const resultatD1 = await reponseD1.json();
-        if (reponseD1.ok && resultatD1.success) {
-          resultat = resultatD1;
-        }
-      } catch (erreurD1) {
-        console.warn(
-          "Effectif D1 indisponible, utilisation d’Apps Script.",
-          erreurD1
-        );
-      }
+    const url =
+      EFFECTIF_API_URL +
+      "?action=recupererEffectif" +
+      "&identifiant=" +
+      encodeURIComponent(identifiant);
+    const reponse = await fetch(url);
+    if (!reponse.ok) {
+      throw new Error(
+        "Erreur serveur : " + reponse.status
+      );
     }
-
-    if (!resultat) {
-      const url =
-        EFFECTIF_API_URL +
-        "?action=recupererEffectif" +
-        "&identifiant=" +
-        encodeURIComponent(identifiant);
-      const reponse = await fetch(url);
-      if (!reponse.ok) {
-        throw new Error(
-          "Erreur serveur : " + reponse.status
-        );
-      }
-      resultat = await reponse.json();
-    }
+    const resultat = await reponse.json();
 
     if (!resultat.success) {
       afficherErreurEffectif(
