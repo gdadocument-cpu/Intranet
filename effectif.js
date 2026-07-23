@@ -28,7 +28,10 @@ async function chargerEffectif() {
     sessionStorage.getItem("identifiantUtilisateur") || "";
 
 
-  if (!(typeof gdaReponseEnCache === "function" && gdaReponseEnCache("recupererEffectif"))) {
+  // Une requête de préchargement peut déjà être en cours sans que les
+  // données soient encore disponibles. Dans ce cas, afficher quand même
+  // l'état de chargement afin que le clic donne un retour immédiat.
+  if (!effectifCharge) {
     workspace.innerHTML = `
       <section id="effectifModule">
         <div class="effectif-message">
