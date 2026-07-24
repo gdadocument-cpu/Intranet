@@ -11,6 +11,25 @@ let effectifSanctionsEdition = [];
 let effectifMedaillesEdition = [];
 let effectifSpecialisationsEdition = [];
 let effectifCharge = false;
+const CLE_CACHE_LOCAL_EFFECTIF = "gdaEffectifOfficierLocalV1";
+const DUREE_CACHE_LOCAL_EFFECTIF = 30 * 60 * 1000;
+const ORDRE_GRADES_EFFECTIF = [
+  "LIEUTENANT-COLONEL",
+  "COMMANDANT",
+  "VICE-COMMANDANT",
+  "CAPITAINE",
+  "LIEUTENANT",
+  "SOUS-LIEUTENANT",
+  "ASPIRANT",
+  "MAJOR",
+  "ADJUDANT-CHEF",
+  "ADJUDANT",
+  "SERGENT-CHEF",
+  "SERGENT",
+  "CAPORAL-CHEF",
+  "CAPORAL",
+  "ANCIEN GDA"
+];
 
 
 effectifButton.addEventListener("click", function () {
@@ -26,6 +45,11 @@ effectifButton.addEventListener("click", function () {
 async function chargerEffectif() {
   const identifiant =
     sessionStorage.getItem("identifiantUtilisateur") || "";
+
+  if (!effectifCharge && restaurerCacheLocalEffectif(identifiant)) {
+    afficherEffectif(effectifMembres);
+  }
+  const donneesEffectifDisponibles = effectifCharge;
 
 
   // Une requête de préchargement peut déjà être en cours sans que les
@@ -48,6 +72,15 @@ async function chargerEffectif() {
     return;
   }
 
+  const boutonActualiser =
+    document.getElementById("effectifRefresh");
+  const texteBoutonActualiser =
+    boutonActualiser ? boutonActualiser.textContent : "";
+  if (boutonActualiser) {
+    boutonActualiser.disabled = true;
+    boutonActualiser.textContent = "Actualisation...";
+  }
+
   try {
     const url =
       EFFECTIF_API_URL +
@@ -63,10 +96,12 @@ async function chargerEffectif() {
     const resultat = await reponse.json();
 
     if (!resultat.success) {
-      afficherErreurEffectif(
+      if (!donneesEffectifDisponibles) {
+        afficherErreurEffectif(
         resultat.message ||
         "Impossible de récupérer l’effectif."
-      );
+        );
+      }
       return;
     }
 
@@ -96,26 +131,119 @@ async function chargerEffectif() {
         ? resultat.specialisations
         : [];
     effectifCharge = true;
+    memoriserCacheLocalEffectif(identifiant);
 
     afficherEffectif(effectifMembres);
 
   } catch (erreur) {
     console.error(erreur);
 
-    afficherErreurEffectif(
-      erreur.message || "Impossible de contacter le serveur GDA."
-    );
+    if (!donneesEffectifDisponibles) {
+      afficherErreurEffectif(
+        erreur.message || "Impossible de contacter le serveur GDA."
+      );
+    }
+  } finally {
+    if (boutonActualiser && boutonActualiser.isConnected) {
+      boutonActualiser.disabled = false;
+      boutonActualiser.textContent =
+        texteBoutonActualiser || "Actualiser";
+    }
   }
+}
+
+function cleCacheLocalEffectif(identifiant) {
+  return (
+    CLE_CACHE_LOCAL_EFFECTIF +
+    ":" +
+    normaliserTexteEffectif(identifiant || "")
+  );
+}
+
+function restaurerCacheLocalEffectif(identifiant) {
+  if (!identifiant) return false;
+  try {
+    const cache = JSON.parse(
+      localStorage.getItem(
+        cleCacheLocalEffectif(identifiant)
+      ) || "null"
+    );
+    if (
+      !cache ||
+      Date.now() - Number(cache.enregistreLe || 0) >
+        DUREE_CACHE_LOCAL_EFFECTIF ||
+      !Array.isArray(cache.membres)
+    ) {
+      return false;
+    }
+    effectifMembres =
+      cache.membres.filter(estMembreReelEffectif);
+    effectifPeutModifier =
+      cache.peutModifier === true;
+    effectifPeutAjouter =
+      cache.peutAjouter === true;
+    effectifGradesEdition =
+      Array.isArray(cache.grades) ? cache.grades : [];
+    effectifSanctionsEdition =
+      Array.isArray(cache.sanctions) ? cache.sanctions : [];
+    effectifMedaillesEdition =
+      Array.isArray(cache.medailles) ? cache.medailles : [];
+    effectifSpecialisationsEdition =
+      Array.isArray(cache.specialisations)
+        ? cache.specialisations
+        : [];
+    effectifCharge = true;
+    return true;
+  } catch (erreur) {
+    localStorage.removeItem(
+      cleCacheLocalEffectif(identifiant)
+    );
+    return false;
+  }
+}
+
+function memoriserCacheLocalEffectif(identifiant) {
+  if (!identifiant || !effectifCharge) return;
+  try {
+    localStorage.setItem(
+      cleCacheLocalEffectif(identifiant),
+      JSON.stringify({
+        enregistreLe: Date.now(),
+        membres: effectifMembres,
+        peutModifier: effectifPeutModifier,
+        peutAjouter: effectifPeutAjouter,
+        grades: effectifGradesEdition,
+        sanctions: effectifSanctionsEdition,
+        medailles: effectifMedaillesEdition,
+        specialisations: effectifSpecialisationsEdition
+      })
+    );
+  } catch (erreur) {
+    /* Le cache local est une accélération facultative. */
+  }
+}
+
+function supprimerCacheLocalEffectif() {
+  const identifiant =
+    sessionStorage.getItem("identifiantUtilisateur") || "";
+  if (!identifiant) return;
+  localStorage.removeItem(
+    cleCacheLocalEffectif(identifiant)
+  );
 }
 
 function synchroniserCacheEffectifGDA(membres) {
   if (!Array.isArray(membres)) return;
   effectifMembres = membres.filter(estMembreReelEffectif);
   effectifCharge = true;
+  memoriserCacheLocalEffectif(
+    sessionStorage.getItem("identifiantUtilisateur") || ""
+  );
 }
 
 function invaliderCacheEffectifGDA() {
   effectifCharge = false;
+  supprimerCacheLocalEffectif();
   if (typeof gdaForcerActualisation === "function") {
     gdaForcerActualisation("recupererEffectif");
   }
@@ -133,7 +261,7 @@ function afficherEffectif(membres) {
     "hommes-du-rang": []
   };
 
-  membres.forEach(function (membre) {
+  trierMembresEffectif(membres).forEach(function (membre) {
     const categorie =
       obtenirCategorieGrade(membre.grade);
 
@@ -260,6 +388,71 @@ function afficherEffectif(membres) {
         }
       });
     });
+}
+
+function trierMembresEffectif(membres) {
+  return (Array.isArray(membres) ? membres : [])
+    .slice()
+    .sort(comparerMembresEffectif);
+}
+
+function comparerMembresEffectif(a, b) {
+  const rangA = obtenirRangGradeEffectif(a && a.grade);
+  const rangB = obtenirRangGradeEffectif(b && b.grade);
+  if (rangA !== rangB) return rangA - rangB;
+
+  const dateA = obtenirDateTriEffectif(a && a.dateEntree);
+  const dateB = obtenirDateTriEffectif(b && b.dateEntree);
+  if (dateA !== dateB) return dateA - dateB;
+
+  return String(a && a.nom || "").localeCompare(
+    String(b && b.nom || ""),
+    "fr",
+    { sensitivity: "base" }
+  );
+}
+
+function obtenirRangGradeEffectif(grade) {
+  const rang = ORDRE_GRADES_EFFECTIF.indexOf(
+    normaliserTexteEffectif(grade)
+  );
+  return rang === -1
+    ? ORDRE_GRADES_EFFECTIF.length
+    : rang;
+}
+
+function obtenirDateTriEffectif(valeur) {
+  if (valeur instanceof Date && !isNaN(valeur)) {
+    return valeur.getTime();
+  }
+
+  const texte = String(valeur || "").trim();
+  let morceaux = texte.match(
+    /^(\d{2})\/(\d{2})\/(\d{4})/
+  );
+  if (morceaux) {
+    return new Date(
+      Number(morceaux[3]),
+      Number(morceaux[2]) - 1,
+      Number(morceaux[1])
+    ).getTime();
+  }
+
+  morceaux = texte.match(
+    /^(\d{4})-(\d{2})-(\d{2})/
+  );
+  if (morceaux) {
+    return new Date(
+      Number(morceaux[1]),
+      Number(morceaux[2]) - 1,
+      Number(morceaux[3])
+    ).getTime();
+  }
+
+  const date = Date.parse(texte);
+  return Number.isFinite(date)
+    ? date
+    : Number.MAX_SAFE_INTEGER;
 }
 
 function ouvrirAjoutMembreEffectif() {
