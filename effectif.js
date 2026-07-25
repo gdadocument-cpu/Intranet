@@ -42,7 +42,10 @@ effectifButton.addEventListener("click", function () {
 });
 
 
-async function chargerEffectif() {
+async function chargerEffectif(options) {
+  const silencieux =
+    options === true ||
+    Boolean(options && options.silencieux);
   const identifiant =
     sessionStorage.getItem("identifiantUtilisateur") || "";
 
@@ -55,7 +58,7 @@ async function chargerEffectif() {
   // Une requête de préchargement peut déjà être en cours sans que les
   // données soient encore disponibles. Dans ce cas, afficher quand même
   // l'état de chargement afin que le clic donne un retour immédiat.
-  if (!effectifCharge) {
+  if (!effectifCharge && !silencieux) {
     workspace.innerHTML = `
       <section id="effectifModule">
         <div class="effectif-message">
@@ -72,8 +75,9 @@ async function chargerEffectif() {
     return;
   }
 
-  const boutonActualiser =
-    document.getElementById("effectifRefresh");
+  const boutonActualiser = silencieux
+    ? null
+    : document.getElementById("effectifRefresh");
   const texteBoutonActualiser =
     boutonActualiser ? boutonActualiser.textContent : "";
   if (boutonActualiser) {
@@ -133,7 +137,11 @@ async function chargerEffectif() {
     effectifCharge = true;
     memoriserCacheLocalEffectif(identifiant);
 
-    afficherEffectif(effectifMembres);
+    if (silencieux) {
+      synchroniserAffichageEffectifIncremental(effectifMembres);
+    } else {
+      afficherEffectif(effectifMembres);
+    }
 
   } catch (erreur) {
     console.error(erreur);
@@ -250,6 +258,12 @@ function invaliderCacheEffectifGDA() {
 }
 
 window.invaliderCacheEffectifGDA = invaliderCacheEffectifGDA;
+window.gdaActualiserEffectifSilencieusement = function () {
+  if (typeof gdaForcerActualisation === "function") {
+    gdaForcerActualisation("recupererEffectif");
+  }
+  return chargerEffectif({ silencieux: true });
+};
 
 
 function afficherEffectif(membres) {
@@ -362,9 +376,15 @@ function afficherEffectif(membres) {
     );
   }
 
-  document
+  brancherInteractionsLignesEffectif(workspace);
+}
+
+function brancherInteractionsLignesEffectif(racine) {
+  (racine || document)
     .querySelectorAll(".effectif-member")
     .forEach(function (ligne) {
+      if (ligne.dataset.interactionsEffectif === "1") return;
+      ligne.dataset.interactionsEffectif = "1";
       ligne.addEventListener("click", function () {
         const index = Number(
           ligne.dataset.index
@@ -388,6 +408,84 @@ function afficherEffectif(membres) {
         }
       });
     });
+}
+
+function synchroniserAffichageEffectifIncremental(membres) {
+  if (!moduleGdaEstActif("effectif-officier")) return;
+
+  const module = document.getElementById("effectifModule");
+  // Une fiche ou un formulaire est ouvert : mettre le cache à jour sans
+  // chasser l'utilisateur de l'écran sur lequel il travaille.
+  if (!module || !module.querySelector(".effectif-list")) return;
+
+  const groupes = {
+    "officiers-superieurs": [],
+    "officiers": [],
+    "sous-officiers": [],
+    "hommes-du-rang": []
+  };
+  trierMembresEffectif(membres).forEach(function (membre) {
+    groupes[obtenirCategorieGrade(membre.grade)].push(membre);
+  });
+
+  const categories = Object.keys(groupes);
+  const structureCompatible = categories.every(function (categorie) {
+    const section = module.querySelector(
+      '.effectif-section[data-categorie-effectif="' + categorie + '"]'
+    );
+    return Boolean(section) === Boolean(groupes[categorie].length);
+  });
+  if (!structureCompatible) {
+    afficherEffectif(membres);
+    return;
+  }
+
+  categories.forEach(function (categorie) {
+    const section = module.querySelector(
+      '.effectif-section[data-categorie-effectif="' + categorie + '"]'
+    );
+    if (!section) return;
+
+    const membresCategorie = groupes[categorie];
+    const signature = empreinteMembresEffectif(membresCategorie);
+    if (section.dataset.signatureEffectif === signature) return;
+
+    const liste = section.querySelector(".effectif-list");
+    if (!liste) return;
+    liste.innerHTML = membresCategorie.map(function (membre) {
+      return creerLigneMembre(membre, effectifMembres.indexOf(membre));
+    }).join("");
+    section.dataset.signatureEffectif = signature;
+
+    const compteur = section.querySelector(".effectif-section-title span");
+    if (compteur) {
+      compteur.textContent =
+        membresCategorie.length +
+        " membre" +
+        (membresCategorie.length > 1 ? "s" : "");
+    }
+    brancherInteractionsLignesEffectif(liste);
+  });
+
+  const compteurGlobal = module.querySelector(".effectif-compteur strong");
+  if (compteurGlobal) compteurGlobal.textContent = String(membres.length);
+  const compteurBloc = module.querySelector(".effectif-compteur");
+  if (compteurBloc) {
+    compteurBloc.setAttribute(
+      "aria-label",
+      membres.length + " GDA sur 35 maximum"
+    );
+  }
+}
+
+function empreinteMembresEffectif(membres) {
+  const texte = JSON.stringify(membres || []);
+  let empreinte = 2166136261;
+  for (let index = 0; index < texte.length; index++) {
+    empreinte ^= texte.charCodeAt(index);
+    empreinte = Math.imul(empreinte, 16777619);
+  }
+  return String(empreinte >>> 0);
 }
 
 function trierMembresEffectif(membres) {
@@ -636,7 +734,11 @@ function creerSectionEffectif(
     .join("");
 
   return `
-    <section class="effectif-section ${classeSection}">
+    <section
+      class="effectif-section ${classeSection}"
+      data-categorie-effectif="${classeSection}"
+      data-signature-effectif="${empreinteMembresEffectif(membres)}"
+    >
 
       <h4 class="effectif-section-title">
         ${echapperHTML(titre)}
