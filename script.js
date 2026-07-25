@@ -50,6 +50,8 @@ let menuInstructeurOuvert = false;
 let menuLiensUtilesOuvert = false;
 let menuAdministrationOuvert = false;
 let moduleGdaActif = "";
+let revisionDonneesGDA = null;
+let actualisationModuleGdaEnCours = false;
 
 function definirModuleGdaActif(nom) {
   moduleGdaActif = String(nom || "");
@@ -304,8 +306,28 @@ const INVALIDATIONS_CACHE_GDA = {
   appliquerGestionPersonnel: ["recupererGestionPersonnel", "recupererEffectif", "recupererEffectifPublic", "recupererDeparts"],
   modifierLogGestionPersonnel: ["recupererGestionPersonnel"],
   supprimerLogGestionPersonnel: ["recupererGestionPersonnel"],
+  enregistrerNote: ["recupererEffectif", "recupererEffectifPublic"],
   modifierMembreEffectif: ["recupererEffectif", "recupererEffectifPublic", "recupererGestionPersonnel", "recupererAdministration"],
   ajouterMembreEffectif: ["recupererEffectif", "recupererEffectifPublic", "recupererGestionPersonnel", "recupererAdministration"],
+  ajouterAbsence: ["recupererDisponibilites", "recupererEffectif", "recupererEffectifPublic"],
+  modifierAbsence: ["recupererDisponibilites", "recupererEffectif", "recupererEffectifPublic"],
+  retourAnticipe: ["recupererDisponibilites", "recupererEffectif", "recupererEffectifPublic"],
+  supprimerAbsence: ["recupererDisponibilites", "recupererEffectif", "recupererEffectifPublic"],
+  ajouterDemandeAbsence: ["recupererMesDemandesAbsence", "recupererDisponibilites", "recupererNotifications"],
+  modifierDemandeAbsence: ["recupererMesDemandesAbsence", "recupererDisponibilites", "recupererNotifications"],
+  supprimerDemandeAbsence: ["recupererMesDemandesAbsence", "recupererDisponibilites", "recupererNotifications"],
+  terminerDemandeAbsence: ["recupererMesDemandesAbsence", "recupererDisponibilites", "recupererNotifications", "recupererEffectif", "recupererEffectifPublic"],
+  traiterDemandeAbsence: ["recupererMesDemandesAbsence", "recupererDisponibilites", "recupererNotifications", "recupererEffectif", "recupererEffectifPublic"],
+  ajouterDepart: ["recupererDeparts", "recupererEffectif", "recupererEffectifPublic", "recupererGestionPersonnel", "recupererAdministration"],
+  modifierDepart: ["recupererDeparts"],
+  supprimerDepart: ["recupererDeparts"],
+  ajouterRapport: ["recupererRapports", "recupererEffectif"],
+  ajouterMonRapport: ["recupererRapports", "recupererMesRapports", "recupererEffectif"],
+  modifierMonRapport: ["recupererRapports", "recupererMesRapports"],
+  supprimerMonRapport: ["recupererRapports", "recupererMesRapports", "recupererEffectif"],
+  changerStatutRapport: ["recupererRapports", "recupererMesRapports", "recupererEffectif"],
+  archiverTousRapportsLus: ["recupererRapports", "recupererMesRapports", "recupererEffectif"],
+  supprimerRapport: ["recupererRapports", "recupererMesRapports", "recupererEffectif"],
   enregistrerRapportTestInstructeur: ["recupererRapportsInstructeur", "recupererSuivisFormationInstructeur", "recupererMesSuivisInstructeur"],
   enregistrerRapportFormationInstructeur: ["recupererRapportsInstructeur", "recupererSuivisFormationInstructeur"],
   modifierRapportInstructeur: ["recupererRapportsInstructeur", "recupererSuivisFormationInstructeur", "recupererMesSuivisInstructeur"],
@@ -331,6 +353,217 @@ const INVALIDATIONS_CACHE_GDA = {
   modifierRecommandationObservation: ["recupererRecommandationsObservations", "recupererEffectif"],
   purgerRecommandationsObservations: ["recupererRecommandationsObservations", "recupererEffectif"]
 };
+
+function traiterRevisionDonneesGDA(revision, derniereAction) {
+  if (revision === undefined || revision === null || revision === "") return;
+  const valeur = Number(revision) || 0;
+
+  if (revisionDonneesGDA === null) {
+    revisionDonneesGDA = valeur;
+    return;
+  }
+  if (valeur === revisionDonneesGDA) return;
+
+  revisionDonneesGDA = valeur;
+  const action = String(derniereAction || "");
+  const cibles = (INVALIDATIONS_CACHE_GDA[action] || []).slice();
+  if (!cibles.includes("recupererJournalActions")) {
+    cibles.push("recupererJournalActions");
+  }
+  invaliderCacheLecturesActionsGDA(cibles);
+
+  window.dispatchEvent(new CustomEvent("gda-donnees-modifiees", {
+    detail: {
+      revision: valeur,
+      action: action,
+      cibles: cibles.slice()
+    }
+  }));
+}
+
+async function actualiserModuleVisibleGDA(evenement) {
+  if (document.hidden || actualisationModuleGdaEnCours) return;
+  const champActif = document.activeElement;
+  if (
+    champActif &&
+    /^(INPUT|TEXTAREA|SELECT)$/.test(champActif.tagName)
+  ) {
+    // Ne jamais remplacer un formulaire pendant que quelqu'un le remplit.
+    const detailDiffere = evenement && evenement.detail
+      ? evenement.detail
+      : {};
+    window.setTimeout(function () {
+      actualiserModuleVisibleGDA({ detail: detailDiffere });
+    }, 2000);
+    return;
+  }
+  const detail = evenement && evenement.detail ? evenement.detail : {};
+  const cibles = new Set(Array.isArray(detail.cibles) ? detail.cibles : []);
+
+  const actualisateurs = {
+    "effectif-officier": {
+      action: "recupererEffectif",
+      executer: function () {
+        return typeof window.gdaActualiserEffectifSilencieusement === "function"
+          ? window.gdaActualiserEffectifSilencieusement()
+          : null;
+      }
+    },
+    "effectif-public": {
+      action: "recupererEffectifPublic",
+      executer: function () {
+        return typeof chargerEffectifPublicGDA === "function"
+          ? chargerEffectifPublicGDA(true, true)
+          : null;
+      }
+    },
+    "disponibilites-officier": {
+      action: "recupererDisponibilites",
+      executer: function () {
+        if (typeof gdaForcerActualisation === "function") {
+          gdaForcerActualisation("recupererDisponibilites");
+        }
+        return typeof chargerDisponibilites === "function"
+          ? chargerDisponibilites()
+          : null;
+      }
+    },
+    "departs-officier": {
+      action: "recupererDeparts",
+      executer: function () {
+        if (typeof gdaForcerActualisation === "function") {
+          gdaForcerActualisation("recupererDeparts");
+        }
+        return typeof chargerRegistreDeparts === "function"
+          ? chargerRegistreDeparts()
+          : null;
+      }
+    },
+    "rapports-officier": {
+      action: "recupererRapports",
+      executer: function () {
+        if (typeof gdaForcerActualisation === "function") {
+          gdaForcerActualisation("recupererRapports");
+        }
+        return typeof chargerRapports === "function"
+          ? chargerRapports(true)
+          : null;
+      }
+    },
+    "rapports-personnels": {
+      action: "recupererMesRapports",
+      executer: function () {
+        if (typeof gdaForcerActualisation === "function") {
+          gdaForcerActualisation("recupererMesRapports");
+        }
+        return typeof chargerRapportsPersonnelsGDA === "function"
+          ? chargerRapportsPersonnelsGDA(true)
+          : null;
+      }
+    },
+    "demandes-absence": {
+      action: "recupererMesDemandesAbsence",
+      executer: function () {
+        if (typeof gdaForcerActualisation === "function") {
+          gdaForcerActualisation("recupererMesDemandesAbsence");
+        }
+        return typeof chargerDemandesAbsenceGDA === "function"
+          ? chargerDemandesAbsenceGDA(true)
+          : null;
+      }
+    },
+    "gestion-personnel": {
+      action: "recupererGestionPersonnel",
+      executer: function () {
+        if (typeof gdaForcerActualisation === "function") {
+          gdaForcerActualisation("recupererGestionPersonnel");
+        }
+        return typeof chargerGestionPersonnel === "function"
+          ? chargerGestionPersonnel()
+          : null;
+      }
+    },
+    "recommandations-observations": {
+      action: "recupererRecommandationsObservations",
+      executer: function () {
+        if (typeof gdaForcerActualisation === "function") {
+          gdaForcerActualisation("recupererRecommandationsObservations");
+        }
+        return typeof chargerRecommandationsObservationsGDA === "function"
+          ? chargerRecommandationsObservationsGDA(true)
+          : null;
+      }
+    },
+    "administration-permissions": {
+      action: "recupererAdministration",
+      executer: function () {
+        if (typeof gdaForcerActualisation === "function") {
+          gdaForcerActualisation("recupererAdministration");
+        }
+        return typeof chargerAdministration === "function"
+          ? chargerAdministration()
+          : null;
+      }
+    },
+    "administration-liste-blanche": {
+      action: "recupererListeBlanche",
+      executer: function () {
+        if (typeof gdaForcerActualisation === "function") {
+          gdaForcerActualisation("recupererListeBlanche");
+        }
+        return typeof chargerListeBlancheGDA === "function"
+          ? chargerListeBlancheGDA()
+          : null;
+      }
+    },
+    "administration-logs": {
+      action: "recupererJournalActions",
+      executer: function () {
+        return typeof chargerJournalActionsGDA === "function"
+          ? chargerJournalActionsGDA(true, true)
+          : null;
+      }
+    },
+    "instructeur-archives": {
+      action: "recupererArchivesInstructeur",
+      executer: function () {
+        return typeof ouvrirArchivesInstructeur === "function"
+          ? ouvrirArchivesInstructeur(true)
+          : null;
+      }
+    },
+    "instructeur-suivis-formation": {
+      action: "recupererSuivisFormationInstructeur",
+      executer: function () {
+        return typeof ouvrirSuivisFormationInstructeur === "function"
+          ? ouvrirSuivisFormationInstructeur(true)
+          : null;
+      }
+    },
+    "instructeur-historique-rapports": {
+      action: "recupererRapportsInstructeur",
+      executer: function () {
+        return typeof chargerHistoriqueRapportsInstructeur === "function"
+          ? chargerHistoriqueRapportsInstructeur(true, true)
+          : null;
+      }
+    }
+  };
+
+  const configuration = actualisateurs[moduleGdaActif];
+  if (!configuration || !cibles.has(configuration.action)) return;
+
+  actualisationModuleGdaEnCours = true;
+  try {
+    await Promise.resolve(configuration.executer());
+  } catch (erreur) {
+    console.warn("Actualisation automatique indisponible :", erreur);
+  } finally {
+    actualisationModuleGdaEnCours = false;
+  }
+}
+
+window.addEventListener("gda-donnees-modifiees", actualiserModuleVisibleGDA);
 
 function hydraterCacheSessionGDA(sessionToken) {
   if (!sessionToken || sessionCacheHydrateGDA === sessionToken) return;
@@ -2005,7 +2238,7 @@ function initialiserPresenceEnLigne(blocUtilisateur) {
   if (!minuteurPresenceEnLigne) {
     minuteurPresenceEnLigne = setInterval(
       actualiserPresenceEnLigne,
-      15000
+      10000
     );
   }
 }
@@ -2030,6 +2263,11 @@ async function actualiserPresenceEnLigne() {
     const resultat = await reponse.json();
 
     if (!resultat.success) return;
+
+    traiterRevisionDonneesGDA(
+      resultat.revisionDonnees,
+      resultat.derniereActionDonnees
+    );
 
     if (Array.isArray(resultat.permissions)) {
       const anciennesPermissions = sessionStorage.getItem("permissionsUtilisateur") || "[]";
