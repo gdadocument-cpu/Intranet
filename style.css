@@ -625,7 +625,7 @@ h1 {
   position: relative;
   flex: 1 1 680px;
   width: min(43vw, 780px);
-  min-width: 350px;
+  min-width: 240px;
   max-width: 780px;
   aspect-ratio: 1642 / 214;
   margin-left: auto;
@@ -633,6 +633,10 @@ h1 {
   border-radius: 9px;
   isolation: isolate;
   box-shadow: 0 0 13px rgba(80, 170, 255, 0.18);
+}
+
+.defcon-entete::after {
+  content: none;
 }
 
 #gdaSauvegardeEtat {
@@ -677,24 +681,98 @@ h1 {
   to { transform: rotate(360deg); }
 }
 
+@media (max-width: 1450px) {
+  #topbar {
+    gap: 13px;
+    padding-inline: 16px;
+  }
+
+  #topbar h2 {
+    font-size: 17px;
+    letter-spacing: 2px;
+  }
+
+  .defcon-entete {
+    flex-basis: 540px;
+    width: min(40vw, 650px);
+    min-width: 220px;
+  }
+
+  #userInfo {
+    padding-inline: 13px;
+  }
+}
+
+@media (max-width: 1120px) {
+  #desktop {
+    grid-template-rows: 98px 1fr;
+  }
+
+  #topbar {
+    gap: 10px;
+    padding-inline: 12px;
+  }
+
+  #topbar h2 {
+    font-size: 13px;
+    letter-spacing: 1.2px;
+  }
+
+  .defcon-entete {
+    flex-basis: 390px;
+    width: min(36vw, 500px);
+    min-width: 175px;
+  }
+
+  #smallLogo {
+    width: 52px;
+    height: 52px;
+  }
+
+  #userInfo {
+    max-width: 145px;
+    padding: 7px 10px;
+  }
+
+  #userInfo strong,
+  #userInfo span {
+    max-width: 125px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 900px) {
+  #topbar h2 {
+    display: none;
+  }
+
+  .defcon-entete {
+    flex: 1 1 430px;
+    width: min(48vw, 500px);
+    min-width: 180px;
+  }
+}
+
 .defcon-entete[hidden] {
   display: none;
 }
 
 .defcon-entete img {
   position: absolute;
-  left: -4.14%;
-  width: 111%;
+  left: -0.67%;
+  width: 101.33%;
   max-width: none;
   height: auto;
   pointer-events: none;
   user-select: none;
 }
 
-.defcon-entete[data-niveau="1"] img { top: -18.7%; }
-.defcon-entete[data-niveau="2"] img { top: -127.6%; }
-.defcon-entete[data-niveau="3"] img { top: -236.9%; }
-.defcon-entete[data-niveau="4"] img { top: -342.5%; }
+.defcon-entete[data-niveau="1"] img { top: -6.9%; }
+.defcon-entete[data-niveau="2"] img { top: -117.1%; }
+.defcon-entete[data-niveau="3"] img { top: -226.4%; }
+.defcon-entete[data-niveau="4"] img { top: -331%; }
 
 .defcon-entete[data-niveau="3"] {
   animation: defconUrgence 1.65s ease-in-out infinite;
@@ -1575,11 +1653,35 @@ h1 {
   }
 
   .defcon-entete {
-    flex-basis: 170px;
-    width: min(28vw, 240px);
-    min-width: 105px;
-    border-radius: 6px;
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 90px;
+    max-width: none;
+    height: 42px;
+    aspect-ratio: auto;
+    display: grid;
+    place-items: center;
+    border: 1px solid currentColor;
+    border-radius: 9px;
+    background: rgba(5, 18, 30, 0.95);
   }
+
+  .defcon-entete img {
+    display: none;
+  }
+
+  .defcon-entete::after {
+    content: "DEFCON " attr(data-niveau);
+    font-size: clamp(11px, 2.5vw, 15px);
+    font-weight: 950;
+    letter-spacing: 0.8px;
+    white-space: nowrap;
+  }
+
+  .defcon-entete[data-niveau="1"] { color: #52ef88; }
+  .defcon-entete[data-niveau="2"] { color: #ffe15a; }
+  .defcon-entete[data-niveau="3"] { color: #ff9a3d; }
+  .defcon-entete[data-niveau="4"] { color: #ff5967; }
 
   #defconCommandePanneau {
     position: fixed;
@@ -1652,18 +1754,57 @@ h1 {
   }
 
   #topbar {
-    gap: 8px;
-    padding-inline: 9px;
+    gap: 6px;
+    padding-inline: 7px;
   }
 
   .defcon-entete {
-    min-width: 92px;
-    width: 26vw;
+    min-width: 78px;
+    height: 38px;
+  }
+
+  #smallLogo {
+    width: 38px;
+    height: 38px;
+  }
+
+  #defconCommandeBouton,
+  #notificationsAbsenceBouton,
+  #presenceEnLigneBouton {
+    width: 36px;
+    height: 36px;
+    font-size: 17px;
+  }
+
+  #userInfo {
+    max-width: 88px;
+    padding: 5px 7px;
+    border-radius: 10px;
+  }
+
+  #userInfo strong {
+    max-width: 74px;
+    font-size: 10px;
+  }
+
+  #userInfo span {
+    display: none;
   }
 
   #gdaSauvegardeEtat {
     right: 10px;
     bottom: 10px;
+  }
+}
+
+@media (max-width: 390px) {
+  #smallLogo {
+    display: none;
+  }
+
+  .defcon-entete::after {
+    font-size: 10px;
+    letter-spacing: 0.3px;
   }
 }
 /* Apparition progressive commune à tous les modules. */

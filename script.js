@@ -6,6 +6,7 @@ const loginForm = document.getElementById("login");
 const loginButton = document.getElementById("loginButton");
 const rememberDiscord = document.getElementById("rememberDiscord");
 const CLE_SOUVENIR_DISCORD = "gdaDiscordRemember";
+const CLE_DEFCON_MEMORISE_GDA = "gdaDefconGlobal";
 const VERSION_CACHE_GDA = "20260717-5";
 const CLE_VERSION_CACHE_GDA = "gdaCacheVersion";
 
@@ -1187,6 +1188,8 @@ function terminerConnexionDiscord(resultat, identifiant) {
     resultat.coproprietaire === true ? "true" : "false"
   );
 
+  afficherDefconGDA(resultat.defcon || lireDefconMemoriseGDA());
+
   if (resultat.rememberToken && Number(resultat.rememberExpires) > Date.now()) {
     localStorage.setItem(CLE_SOUVENIR_DISCORD, JSON.stringify({
       token: resultat.rememberToken,
@@ -1395,6 +1398,7 @@ function afficherUtilisateur() {
     <span>${echapperHTML(nom)}</span>
   `;
 
+  afficherDefconGDA(lireDefconMemoriseGDA());
   initialiserPresenceEnLigne(blocUtilisateur);
   initialiserNotificationsAbsenceGDA(blocUtilisateur);
   initialiserDefconGDA(blocUtilisateur);
@@ -2234,6 +2238,27 @@ function actualiserCommandeDefconGDA(autorise, blocUtilisateur) {
   );
 }
 
+function lireDefconMemoriseGDA() {
+  try {
+    const etat = JSON.parse(localStorage.getItem(CLE_DEFCON_MEMORISE_GDA) || "null");
+    return etat && Number.isFinite(Number(etat.niveau)) ? etat : { niveau: 0 };
+  } catch (erreur) {
+    return { niveau: 0 };
+  }
+}
+
+function memoriserDefconGDA(etat) {
+  try {
+    localStorage.setItem(CLE_DEFCON_MEMORISE_GDA, JSON.stringify({
+      niveau: Math.max(0, Math.min(4, Number(etat && etat.niveau) || 0)),
+      modifiePar: String(etat && etat.modifiePar || ""),
+      modifieLe: String(etat && etat.modifieLe || "")
+    }));
+  } catch (erreur) {
+    /* L'affichage reste fonctionnel si le stockage local est indisponible. */
+  }
+}
+
 function afficherDefconGDA(etat) {
   const entete = document.getElementById("defconEntete");
   if (!entete) return;
@@ -2246,6 +2271,11 @@ function afficherDefconGDA(etat) {
   entete.title = niveau
     ? "DEFCON " + niveau + (etat && etat.modifiePar ? " — défini par " + etat.modifiePar : "")
     : "";
+  memoriserDefconGDA({
+    niveau: niveau,
+    modifiePar: etat && etat.modifiePar,
+    modifieLe: etat && etat.modifieLe
+  });
   marquerChoixDefconActifGDA(niveau);
 }
 
