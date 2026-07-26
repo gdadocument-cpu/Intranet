@@ -1329,6 +1329,7 @@ function afficherUtilisateur() {
 
   initialiserPresenceEnLigne(blocUtilisateur);
   initialiserNotificationsAbsenceGDA(blocUtilisateur);
+  initialiserDefconGDA(blocUtilisateur);
   appliquerVisibiliteModulesGDA();
   if (typeof chargerPostItsInstructeurGDA === "function") {
     chargerPostItsInstructeurGDA();
@@ -1414,6 +1415,26 @@ function utilisateurEstOfficierSuperieurGDA() {
   if (utilisateurEstVisiteurGDA()) return true;
   if (utilisateurAPermission("role_staff_total")) return true;
   const grade = String(sessionStorage.getItem("gradeUtilisateur") || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z]/g, "");
+  return ["LIEUTENANTCOLONEL", "COMMANDANT", "VICECOMMANDANT"].includes(grade);
+}
+
+function utilisateurPeutGererDefconGDA() {
+  if (
+    sessionStorage.getItem("proprietaireUtilisateur") === "true" ||
+    sessionStorage.getItem("coproprietaireUtilisateur") === "true" ||
+    utilisateurAPermission("role_staff_total")
+  ) {
+    return true;
+  }
+  const grade = String(
+    sessionStorage.getItem("gradeEffectifPublicUtilisateur") ||
+    sessionStorage.getItem("gradeUtilisateur") ||
+    ""
+  )
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toUpperCase()
@@ -2087,6 +2108,140 @@ function afficherNotificationGDA(message, type) {
   }, 2800);
 }
 
+function initialiserDefconGDA(blocUtilisateur) {
+  const topbar = document.getElementById("topbar");
+  if (!topbar || !blocUtilisateur) return;
+  actualiserCommandeDefconGDA(utilisateurPeutGererDefconGDA(), blocUtilisateur);
+}
+
+function actualiserCommandeDefconGDA(autorise, blocUtilisateur) {
+  const topbar = document.getElementById("topbar");
+  let bloc = document.getElementById("defconCommande");
+  if (!topbar) return;
+
+  if (!autorise) {
+    if (bloc) bloc.remove();
+    return;
+  }
+  if (bloc) return;
+
+  bloc = document.createElement("div");
+  bloc.id = "defconCommande";
+  bloc.innerHTML = `
+    <button id="defconCommandeBouton" type="button" aria-label="Régler le niveau DEFCON" aria-expanded="false">
+      <span aria-hidden="true">🚨</span>
+    </button>
+    <section id="defconCommandePanneau" aria-label="Réglage du niveau DEFCON" hidden>
+      <strong>Niveau DEFCON global</strong>
+      <div class="defcon-choix">
+        ${[0, 1, 2, 3, 4].map(function (niveau) {
+          return `<button type="button" data-niveau="${niveau}" title="${niveau === 0 ? "Désactiver le DEFCON" : "Activer DEFCON " + niveau}">${niveau}</button>`;
+        }).join("")}
+      </div>
+    </section>
+  `;
+
+  const pointInsertion =
+    document.getElementById("notificationsAbsenceCloche") ||
+    document.getElementById("presenceEnLigne") ||
+    blocUtilisateur ||
+    null;
+  topbar.insertBefore(bloc, pointInsertion);
+  bloc.addEventListener("click", function (event) { event.stopPropagation(); });
+  document.getElementById("defconCommandeBouton").addEventListener("click", function (event) {
+    event.stopPropagation();
+    basculerCommandeDefconGDA();
+  });
+  bloc.querySelectorAll(".defcon-choix button").forEach(function (bouton) {
+    bouton.addEventListener("click", function () {
+      definirDefconGDA(Number(bouton.dataset.niveau));
+    });
+  });
+  document.addEventListener("click", fermerCommandeDefconGDA);
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") fermerCommandeDefconGDA();
+  });
+  marquerChoixDefconActifGDA(
+    Number(document.getElementById("defconEntete")?.dataset.niveau) || 0
+  );
+}
+
+function afficherDefconGDA(etat) {
+  const entete = document.getElementById("defconEntete");
+  if (!entete) return;
+  const valeur = typeof etat === "object" && etat !== null ? etat.niveau : etat;
+  const niveau = Math.max(0, Math.min(4, Number(valeur) || 0));
+  entete.dataset.niveau = String(niveau);
+  entete.hidden = niveau === 0;
+  const texte = document.getElementById("defconEnteteTexte");
+  if (texte) texte.textContent = niveau ? "DEFCON " + niveau + " actif" : "Aucun DEFCON actif";
+  entete.title = niveau
+    ? "DEFCON " + niveau + (etat && etat.modifiePar ? " — défini par " + etat.modifiePar : "")
+    : "";
+  marquerChoixDefconActifGDA(niveau);
+}
+
+function marquerChoixDefconActifGDA(niveau) {
+  document.querySelectorAll(".defcon-choix button").forEach(function (bouton) {
+    bouton.classList.toggle("actif", Number(bouton.dataset.niveau) === Number(niveau));
+  });
+}
+
+async function definirDefconGDA(niveau) {
+  const boutonCommande = document.getElementById("defconCommandeBouton");
+  const boutons = Array.from(document.querySelectorAll(".defcon-choix button"));
+  if (boutonCommande) boutonCommande.disabled = true;
+  boutons.forEach(function (bouton) { bouton.disabled = true; });
+  try {
+    const donnees = new URLSearchParams({
+      identifiant: sessionStorage.getItem("identifiantUtilisateur") || "",
+      niveau: String(niveau)
+    });
+    const reponse = await fetch(API_URL + "?action=definirDefcon", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+      body: donnees.toString(),
+      cache: "no-store"
+    });
+    const resultat = await reponse.json();
+    if (!resultat.success) throw new Error(resultat.message || "Impossible de modifier le DEFCON.");
+    afficherDefconGDA(resultat.defcon);
+    fermerCommandeDefconGDA();
+    afficherNotificationGDA(
+      Number(resultat.defcon && resultat.defcon.niveau)
+        ? "DEFCON " + resultat.defcon.niveau + " activé."
+        : "DEFCON désactivé.",
+      "succes"
+    );
+  } catch (erreur) {
+    afficherNotificationGDA(erreur.message || "Impossible de modifier le DEFCON.", "erreur");
+  } finally {
+    if (boutonCommande) boutonCommande.disabled = false;
+    boutons.forEach(function (bouton) { bouton.disabled = false; });
+  }
+}
+
+function basculerCommandeDefconGDA() {
+  const bouton = document.getElementById("defconCommandeBouton");
+  const panneau = document.getElementById("defconCommandePanneau");
+  if (!bouton || !panneau) return;
+  const ouvrir = panneau.hidden;
+  panneau.hidden = !ouvrir;
+  bouton.setAttribute("aria-expanded", String(ouvrir));
+  if (ouvrir) {
+    fermerNotificationsAbsenceGDA();
+    fermerPanneauPresenceEnLigne();
+  }
+}
+
+function fermerCommandeDefconGDA() {
+  const bouton = document.getElementById("defconCommandeBouton");
+  const panneau = document.getElementById("defconCommandePanneau");
+  if (!bouton || !panneau) return;
+  panneau.hidden = true;
+  bouton.setAttribute("aria-expanded", "false");
+}
+
 function initialiserNotificationsAbsenceGDA(blocUtilisateur) {
   const topbar = document.getElementById("topbar");
   if (!topbar || !blocUtilisateur) return;
@@ -2170,6 +2325,7 @@ function basculerNotificationsAbsenceGDA() {
   panneau.hidden = !ouvrir;
   bouton.setAttribute("aria-expanded", String(ouvrir));
   if (ouvrir) {
+    fermerCommandeDefconGDA();
     fermerPanneauPresenceEnLigne();
     actualiserNotificationsAbsenceGDA(true);
   }
@@ -2281,6 +2437,12 @@ async function actualiserPresenceEnLigne() {
       }
     }
 
+    afficherDefconGDA(resultat.defcon);
+    actualiserCommandeDefconGDA(
+      resultat.peutGererDefcon === true,
+      document.getElementById("userInfo")
+    );
+
     utilisateursEnLigne =
       Array.isArray(resultat.utilisateurs)
         ? resultat.utilisateurs
@@ -2373,6 +2535,7 @@ function basculerPanneauPresenceEnLigne() {
   );
 
   if (ouvrir) {
+    fermerCommandeDefconGDA();
     fermerNotificationsAbsenceGDA();
     actualiserPresenceEnLigne();
   }

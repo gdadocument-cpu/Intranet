@@ -608,6 +608,146 @@ h1 {
     0 0 8px rgba(80, 170, 255, 0.45);
 }
 
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Le fichier source reste intact : chaque niveau est cadré dans le sprite. */
+.defcon-entete {
+  position: relative;
+  flex: 1 1 460px;
+  width: min(36vw, 620px);
+  min-width: 180px;
+  max-width: 620px;
+  aspect-ratio: 1642 / 214;
+  margin-left: auto;
+  overflow: hidden;
+  border-radius: 9px;
+  isolation: isolate;
+  box-shadow: 0 0 13px rgba(80, 170, 255, 0.18);
+}
+
+.defcon-entete[hidden] {
+  display: none;
+}
+
+.defcon-entete img {
+  position: absolute;
+  left: -4.14%;
+  width: 111%;
+  max-width: none;
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+}
+
+.defcon-entete[data-niveau="1"] img { top: -18.7%; }
+.defcon-entete[data-niveau="2"] img { top: -127.6%; }
+.defcon-entete[data-niveau="3"] img { top: -236.9%; }
+.defcon-entete[data-niveau="4"] img { top: -342.5%; }
+
+.defcon-entete[data-niveau="3"] {
+  animation: defconUrgence 1.65s ease-in-out infinite;
+}
+
+.defcon-entete[data-niveau="4"] {
+  animation: defconUrgenceCritique 1.05s ease-in-out infinite;
+}
+
+@keyframes defconUrgence {
+  0%, 100% { opacity: 0.88; filter: brightness(0.93); }
+  50% { opacity: 1; filter: brightness(1.16); box-shadow: 0 0 20px rgba(255, 117, 20, 0.52); }
+}
+
+@keyframes defconUrgenceCritique {
+  0%, 100% { opacity: 0.86; filter: brightness(0.92); }
+  50% { opacity: 1; filter: brightness(1.22); box-shadow: 0 0 25px rgba(255, 30, 48, 0.68); }
+}
+
+#defconCommande {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+#defconCommandeBouton {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  padding: 0;
+  border: 1px solid rgba(255, 77, 77, 0.76);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 28%, #9c2e36, #3a080d 72%);
+  color: #fff;
+  cursor: pointer;
+  font-size: 23px;
+  box-shadow: 0 0 14px rgba(255, 42, 58, 0.3), inset 0 0 11px rgba(255, 145, 145, 0.12);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#defconCommandeBouton:hover,
+#defconCommandeBouton[aria-expanded="true"] {
+  transform: translateY(-2px);
+  box-shadow: 0 0 24px rgba(255, 42, 58, 0.62), inset 0 0 13px rgba(255, 145, 145, 0.2);
+}
+
+#defconCommandePanneau {
+  position: absolute;
+  z-index: 125;
+  top: calc(100% + 12px);
+  right: 0;
+  width: 270px;
+  padding: 12px;
+  border: 1px solid rgba(255, 75, 75, 0.5);
+  border-radius: 14px;
+  background: rgba(7, 18, 31, 0.99);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(10px);
+}
+
+#defconCommandePanneau[hidden] { display: none; }
+
+#defconCommandePanneau strong {
+  display: block;
+  margin: 1px 3px 10px;
+  font-size: 14px;
+  letter-spacing: 0.8px;
+}
+
+.defcon-choix {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.defcon-choix button {
+  min-width: 0;
+  height: 42px;
+  padding: 0;
+  border: 1px solid rgba(111, 144, 174, 0.45);
+  border-radius: 9px;
+  background: #10263a;
+  color: #dbe9f5;
+  cursor: pointer;
+  font-weight: 900;
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.defcon-choix button:hover { transform: translateY(-2px); }
+.defcon-choix button[data-niveau="1"] { border-color: #36df74; color: #5af28c; }
+.defcon-choix button[data-niveau="2"] { border-color: #ffd127; color: #ffe066; }
+.defcon-choix button[data-niveau="3"] { border-color: #ff8219; color: #ff9d45; }
+.defcon-choix button[data-niveau="4"] { border-color: #ff2738; color: #ff6570; }
+.defcon-choix button.actif { box-shadow: 0 0 15px currentColor; background: #17324a; }
+
 
 /* =========================
    INFORMATIONS UTILISATEUR
@@ -1386,6 +1526,26 @@ h1 {
     font-size: 20px;
   }
 
+  #defconCommandeBouton {
+    width: 43px;
+    height: 43px;
+    font-size: 20px;
+  }
+
+  .defcon-entete {
+    flex-basis: 170px;
+    width: min(28vw, 240px);
+    min-width: 105px;
+    border-radius: 6px;
+  }
+
+  #defconCommandePanneau {
+    position: fixed;
+    top: 73px;
+    right: 10px;
+    width: min(270px, calc(100vw - 20px));
+  }
+
   .presence-emoji {
     font-size: 21px;
   }
@@ -1447,6 +1607,16 @@ h1 {
 @media (max-width: 520px) {
   #topbar h2 {
     display: none;
+  }
+
+  #topbar {
+    gap: 8px;
+    padding-inline: 9px;
+  }
+
+  .defcon-entete {
+    min-width: 92px;
+    width: 26vw;
   }
 }
 /* Apparition progressive commune à tous les modules. */
