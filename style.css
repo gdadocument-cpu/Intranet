@@ -522,7 +522,7 @@ h1 {
 
   display: grid;
   grid-template-columns: 280px 1fr;
-  grid-template-rows: 90px 1fr;
+  grid-template-rows: 112px 1fr;
 
   width: 100vw;
   height: 100vh;
@@ -573,7 +573,7 @@ h1 {
   align-items: center;
   gap: 20px;
 
-  padding: 15px 25px;
+  padding: 7px 25px;
 
   border-bottom:
     1px solid rgba(80, 145, 220, 0.32);
@@ -623,16 +623,58 @@ h1 {
 /* Le fichier source reste intact : chaque niveau est cadré dans le sprite. */
 .defcon-entete {
   position: relative;
-  flex: 1 1 460px;
-  width: min(36vw, 620px);
-  min-width: 180px;
-  max-width: 620px;
+  flex: 1 1 680px;
+  width: min(43vw, 780px);
+  min-width: 350px;
+  max-width: 780px;
   aspect-ratio: 1642 / 214;
   margin-left: auto;
   overflow: hidden;
   border-radius: 9px;
   isolation: isolate;
   box-shadow: 0 0 13px rgba(80, 170, 255, 0.18);
+}
+
+#gdaSauvegardeEtat {
+  position: fixed;
+  z-index: 10000;
+  right: 18px;
+  bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 14px;
+  border: 1px solid rgba(75, 174, 255, 0.52);
+  border-radius: 999px;
+  background: rgba(5, 20, 34, 0.96);
+  color: #dcefff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.45px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(9px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  box-shadow: 0 9px 28px rgba(0, 0, 0, 0.45);
+}
+
+#gdaSauvegardeEtat.visible {
+  opacity: 1;
+  transform: none;
+}
+
+#gdaSauvegardeEtat::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(111, 199, 255, 0.25);
+  border-top-color: #6dc8ff;
+  border-radius: 50%;
+  animation: gdaSauvegardeRotation 0.7s linear infinite;
+}
+
+@keyframes gdaSauvegardeRotation {
+  to { transform: rotate(360deg); }
 }
 
 .defcon-entete[hidden] {
@@ -1617,6 +1659,11 @@ h1 {
   .defcon-entete {
     min-width: 92px;
     width: 26vw;
+  }
+
+  #gdaSauvegardeEtat {
+    right: 10px;
+    bottom: 10px;
   }
 }
 /* Apparition progressive commune à tous les modules. */

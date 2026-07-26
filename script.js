@@ -52,6 +52,44 @@ let menuAdministrationOuvert = false;
 let moduleGdaActif = "";
 let revisionDonneesGDA = null;
 let actualisationModuleGdaEnCours = false;
+let requetesEcritureActivesGDA = 0;
+let minuteurEtatEcritureGDA = null;
+let derniereMutationLocaleGDA = null;
+
+function demarrerEtatEcritureGDA(action) {
+  requetesEcritureActivesGDA += 1;
+  if (requetesEcritureActivesGDA > 1) return;
+  window.clearTimeout(minuteurEtatEcritureGDA);
+  minuteurEtatEcritureGDA = window.setTimeout(function () {
+    let etat = document.getElementById("gdaSauvegardeEtat");
+    if (!etat) {
+      etat = document.createElement("div");
+      etat.id = "gdaSauvegardeEtat";
+      etat.setAttribute("role", "status");
+      etat.setAttribute("aria-live", "polite");
+      document.body.appendChild(etat);
+    }
+    etat.textContent = /rapport|demande/i.test(String(action || ""))
+      ? "Envoi en cours…"
+      : "Enregistrement en cours…";
+    etat.classList.add("visible");
+  }, 120);
+}
+
+function terminerEtatEcritureGDA(action, reussie) {
+  requetesEcritureActivesGDA = Math.max(0, requetesEcritureActivesGDA - 1);
+  if (reussie) {
+    derniereMutationLocaleGDA = {
+      action: String(action || ""),
+      termineeLe: Date.now()
+    };
+  }
+  if (requetesEcritureActivesGDA > 0) return;
+  window.clearTimeout(minuteurEtatEcritureGDA);
+  const etat = document.getElementById("gdaSauvegardeEtat");
+  if (!etat) return;
+  etat.classList.remove("visible");
+}
 
 function definirModuleGdaActif(nom) {
   moduleGdaActif = String(nom || "");
@@ -371,6 +409,17 @@ function traiterRevisionDonneesGDA(revision, derniereAction) {
     cibles.push("recupererJournalActions");
   }
   invaliderCacheLecturesActionsGDA(cibles);
+
+  const mutationLocaleRecente =
+    derniereMutationLocaleGDA &&
+    derniereMutationLocaleGDA.action === action &&
+    Date.now() - Number(derniereMutationLocaleGDA.termineeLe || 0) < 12000;
+  if (mutationLocaleRecente) {
+    // Le module ayant déclenché l'action a déjà appliqué sa propre réponse.
+    // On évite donc une seconde lecture complète quelques secondes plus tard.
+    derniereMutationLocaleGDA = null;
+    return;
+  }
 
   window.dispatchEvent(new CustomEvent("gda-donnees-modifiees", {
     detail: {
@@ -739,7 +788,26 @@ window.fetch = function(ressource, options) {
       } else if (action && !ACTIONS_SANS_INVALIDATION_CACHE_GDA.has(action)) {
         viderCacheLecturesGDA();
       }
-      return fetchApiAvecDelaiGDA(url.toString(), options).then(securiserReponseJsonGDA);
+      const ecriture = methode !== "GET";
+      if (ecriture) demarrerEtatEcritureGDA(action);
+      return fetchApiAvecDelaiGDA(url.toString(), options)
+        .then(securiserReponseJsonGDA)
+        .then(async function (reponse) {
+          let reussie = reponse.ok;
+          if (ecriture) {
+            try {
+              const resultat = await reponse.clone().json();
+              reussie = reussie && resultat && resultat.success !== false;
+            } catch (erreur) {
+              reussie = false;
+            }
+            terminerEtatEcritureGDA(action, reussie);
+          }
+          return reponse;
+        }, function (erreur) {
+          if (ecriture) terminerEtatEcritureGDA(action, false);
+          throw erreur;
+        });
     }
 
     const forcee =
@@ -2190,6 +2258,13 @@ function marquerChoixDefconActifGDA(niveau) {
 async function definirDefconGDA(niveau) {
   const boutonCommande = document.getElementById("defconCommandeBouton");
   const boutons = Array.from(document.querySelectorAll(".defcon-choix button"));
+  const ancienNiveau =
+    Number(document.getElementById("defconEntete")?.dataset.niveau) || 0;
+  afficherDefconGDA({
+    niveau: niveau,
+    modifiePar: sessionStorage.getItem("nomUtilisateur") || ""
+  });
+  fermerCommandeDefconGDA();
   if (boutonCommande) boutonCommande.disabled = true;
   boutons.forEach(function (bouton) { bouton.disabled = true; });
   try {
@@ -2214,6 +2289,7 @@ async function definirDefconGDA(niveau) {
       "succes"
     );
   } catch (erreur) {
+    afficherDefconGDA({ niveau: ancienNiveau });
     afficherNotificationGDA(erreur.message || "Impossible de modifier le DEFCON.", "erreur");
   } finally {
     if (boutonCommande) boutonCommande.disabled = false;
