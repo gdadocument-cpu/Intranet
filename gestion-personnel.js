@@ -664,10 +664,15 @@ function afficherChoixGestion() {
             const cochee = clesActuelles.includes(cle);
             const modifiable = clesModifiables.includes(cle);
             return `
-              <label class="gestion-specialisation-option ${modifiable ? "" : "gestion-specialisation-verrouillee"}">
+              <label
+                class="gestion-specialisation-option ${modifiable ? "" : "gestion-specialisation-verrouillee"}"
+                data-modifiable="${modifiable ? "1" : "0"}"
+              >
                 <input
                   type="checkbox"
                   value="${echapperHTMLGestion(specialisation)}"
+                  data-specialisation-cle="${echapperHTMLGestion(cle)}"
+                  data-modifiable="${modifiable ? "1" : "0"}"
                   ${cochee ? "checked" : ""}
                   ${modifiable ? "" : "disabled"}
                 >
@@ -681,6 +686,7 @@ function afficherChoixGestion() {
         </div>
       </fieldset>
     `;
+    initialiserExclusiviteSpecialisationsGestion();
     valider.disabled = false;
     return;
   } else if (type === "Départ" || type === "Licenciement") {
@@ -755,6 +761,62 @@ function afficherChoixGestion() {
         valider.disabled = !event.target.value;
       }
     );
+}
+
+function initialiserExclusiviteSpecialisationsGestion() {
+  const cases = Array.from(
+    document.querySelectorAll(
+      "#gestionChoixZone .gestion-specialisation-option input"
+    )
+  );
+  const trouver = function (libelle) {
+    const cle = cleSpecialisationGestionClient(libelle);
+    return cases.find(function (champ) {
+      return champ.dataset.specialisationCle === cle;
+    }) || null;
+  };
+  const instructeur = trouver("Instructeur");
+  const medecin = trouver("Médecin");
+  const combinaison = trouver("Instructeur et Médecin");
+  if (!instructeur || !medecin || !combinaison) return;
+
+  const appliquerEtat = function () {
+    if (
+      !combinaison.checked &&
+      instructeur.checked &&
+      medecin.checked
+    ) {
+      instructeur.checked = false;
+      medecin.checked = false;
+      combinaison.checked = true;
+    } else if (combinaison.checked) {
+      instructeur.checked = false;
+      medecin.checked = false;
+    }
+
+    const combinaisonActive = combinaison.checked;
+    [instructeur, medecin].forEach(function (champ) {
+      const modifiable = champ.dataset.modifiable === "1";
+      champ.disabled = !modifiable || combinaisonActive;
+      const etiquette = champ.closest(".gestion-specialisation-option");
+      if (!etiquette) return;
+      etiquette.classList.toggle(
+        "gestion-specialisation-exclue",
+        combinaisonActive
+      );
+      if (combinaisonActive) {
+        etiquette.title =
+          "Ce rôle est inclus dans « Instructeur et Médecin ».";
+      } else {
+        etiquette.removeAttribute("title");
+      }
+    });
+  };
+
+  cases.forEach(function (champ) {
+    champ.addEventListener("change", appliquerEtat);
+  });
+  appliquerEtat();
 }
 
 async function envoyerActionGestion(

@@ -346,6 +346,20 @@
   transform: none;
 }
 
+.gestion-specialisation-exclue {
+  opacity: .46;
+  cursor: not-allowed;
+  border-color: rgba(154, 168, 181, .2);
+  background: rgba(30, 42, 54, .42);
+  filter: grayscale(.72);
+}
+
+.gestion-specialisation-exclue:hover {
+  border-color: rgba(154, 168, 181, .2);
+  background: rgba(30, 42, 54, .42);
+  transform: none;
+}
+
 .gestion-cache {
   display: none;
 }
