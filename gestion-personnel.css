@@ -240,20 +240,110 @@
   grid-column: 1 / -1;
 }
 
-.gestion-medailles-actuelles {
+.gestion-medailles-actuelles,
+.gestion-specialisations-actuelles {
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
 }
 
-.gestion-medailles-actuelles em {
+.gestion-medailles-actuelles em,
+.gestion-specialisations-actuelles em {
   padding: 6px 9px;
-  border: 1px solid rgba(231, 188, 76, .32);
   border-radius: 999px;
-  color: #ffe09a;
-  background: rgba(107, 77, 12, .22);
   font-size: 12px;
   font-style: normal;
+}
+
+.gestion-medailles-actuelles em {
+  border: 1px solid rgba(231, 188, 76, .32);
+  color: #ffe09a;
+  background: rgba(107, 77, 12, .22);
+}
+
+.gestion-specialisations-actuelles em {
+  border: 1px solid rgba(72, 178, 242, .36);
+  color: #a8dcff;
+  background: rgba(16, 83, 126, .24);
+}
+
+.gestion-specialisations-selection {
+  margin: 0;
+  padding: 15px;
+  border: 1px solid rgba(74, 165, 239, .35);
+  border-radius: 12px;
+  background: rgba(5, 28, 48, .7);
+}
+
+.gestion-specialisations-selection legend {
+  padding: 0 8px;
+  color: #dcefff;
+  font-weight: 800;
+}
+
+.gestion-specialisations-selection > p {
+  margin: 2px 0 14px;
+  color: #91aec8;
+  font-size: 13px;
+}
+
+.gestion-specialisations-grille {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.gestion-specialisation-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid rgba(74, 165, 239, .28);
+  border-radius: 9px;
+  color: #dcefff;
+  background: rgba(10, 48, 77, .54);
+  cursor: pointer;
+  transition:
+    border-color .18s ease,
+    background .18s ease,
+    transform .18s ease;
+}
+
+.gestion-specialisation-option:hover {
+  border-color: rgba(87, 190, 255, .62);
+  background: rgba(15, 68, 106, .68);
+  transform: translateY(-1px);
+}
+
+.gestion-specialisation-option input {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: #3eb6ff;
+}
+
+.gestion-specialisation-option span {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.gestion-specialisation-option small {
+  font-size: 14px;
+}
+
+.gestion-specialisation-verrouillee {
+  opacity: .64;
+  cursor: not-allowed;
+  border-color: rgba(154, 168, 181, .24);
+  background: rgba(37, 48, 59, .48);
+}
+
+.gestion-specialisation-verrouillee:hover {
+  border-color: rgba(154, 168, 181, .24);
+  background: rgba(37, 48, 59, .48);
+  transform: none;
 }
 
 .gestion-cache {
@@ -532,7 +622,8 @@
   .gestion-fiche-membre,
   .gestion-filtres,
   .gestion-formulaire-log-grille,
-  .gestion-log-details {
+  .gestion-log-details,
+  .gestion-specialisations-grille {
     grid-template-columns: 1fr;
   }
 

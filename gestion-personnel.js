@@ -14,6 +14,8 @@ let gestionGrades = [];
 let gestionSanctions = [];
 let gestionDureesBlacklist = [];
 let gestionMedailles = [];
+let gestionSpecialisations = [];
+let gestionSpecialisationsModifiables = [];
 let gestionVue = "action";
 let gestionRecherche = "";
 let gestionFiltreType = "";
@@ -61,7 +63,7 @@ async function chargerGestionPersonnel() {
     const url =
       GESTION_PERSONNEL_API_URL +
       "?action=recupererGestionPersonnel" +
-      "&hierarchie=3" +
+      "&hierarchie=4" +
       "&identifiant=" +
       encodeURIComponent(identifiant);
 
@@ -111,6 +113,13 @@ function appliquerDonneesGestionPersonnel(resultat, complet) {
   if (complet && Array.isArray(resultat.medailles)) {
     gestionMedailles = resultat.medailles;
   }
+  if (complet && Array.isArray(resultat.specialisations)) {
+    gestionSpecialisations = resultat.specialisations;
+  }
+  if (complet && Array.isArray(resultat.specialisationsModifiables)) {
+    gestionSpecialisationsModifiables =
+      resultat.specialisationsModifiables;
+  }
   if (typeof resultat.peutModifierHistorique === "boolean") {
     gestionPeutModifierHistorique = resultat.peutModifierHistorique;
   }
@@ -128,7 +137,7 @@ function afficherGestionPersonnel() {
         <div>
           <h3>👥 GESTION DU PERSONNEL</h3>
           <p>
-            Promotions, rétrogradations, sanctions, départs et médailles
+            Promotions, rétrogradations, spécialisations, sanctions, départs et médailles
           </p>
         </div>
 
@@ -228,6 +237,7 @@ function creerFormulaireGestion() {
             <option value="Licenciement">Licenciement</option>
             <option value="Blacklist">Blacklist</option>
             <option value="Médaille">Médaille</option>
+            <option value="Spécialisation">Spécialisation</option>
           </select>
         </label>
 
@@ -293,7 +303,8 @@ function creerHistoriqueGestion() {
               "Départ",
               "Licenciement",
               "Blacklist",
-              "Médaille"
+              "Médaille",
+              "Spécialisation"
             ].map(type => `
               <option
                 value="${type}"
@@ -342,7 +353,7 @@ function creerHistoriqueGestion() {
               <label class="gestion-champ">
                 <span>Type d’action</span>
                 <select id="gestionLogType" required>
-                  ${["Promotion", "Rétrogradation", "Sanction", "Départ", "Licenciement", "Blacklist", "Médaille"].map(type => `
+                  ${["Promotion", "Rétrogradation", "Sanction", "Départ", "Licenciement", "Blacklist", "Médaille", "Spécialisation"].map(type => `
                     <option value="${type}">${type}</option>
                   `).join("")}
                 </select>
@@ -517,6 +528,10 @@ function afficherFicheMembreGestion() {
     Array.isArray(membre.medailles)
       ? membre.medailles
       : [];
+  const specialisations =
+    Array.isArray(membre.specialisations)
+      ? membre.specialisations
+      : [];
 
   zone.className = "gestion-fiche-membre";
   zone.innerHTML = `
@@ -534,6 +549,16 @@ function afficherFicheMembreGestion() {
         ${medailles.length
           ? medailles.map(m => `<em>${echapperHTMLGestion(m)}</em>`).join("")
           : "<em>Aucune médaille</em>"}
+      </div>
+    </div>
+    <div class="gestion-fiche-large">
+      <span>Spécialisations actuelles</span>
+      <div class="gestion-specialisations-actuelles">
+        ${specialisations.length
+          ? specialisations.map(specialisation => `
+              <em>${echapperHTMLGestion(specialisation)}</em>
+            `).join("")
+          : "<em>Aucune spécialisation</em>"}
       </div>
     </div>
   `;
@@ -614,6 +639,50 @@ function afficherChoixGestion() {
       )
     );
     libelle = "Médaille à attribuer";
+  } else if (type === "Spécialisation") {
+    const actuelles = Array.isArray(membre.specialisations)
+      ? membre.specialisations
+      : [];
+    const clesActuelles = actuelles.map(
+      cleSpecialisationGestionClient
+    );
+    const clesModifiables = gestionSpecialisationsModifiables.map(
+      cleSpecialisationGestionClient
+    );
+
+    zone.classList.remove("gestion-cache");
+    zone.innerHTML = `
+      <fieldset class="gestion-specialisations-selection">
+        <legend>Spécialisations de ${echapperHTMLGestion(membre.nom)}</legend>
+        <p>
+          Décochez les spécialisations à retirer et cochez celles à ajouter.
+          Les rôles protégés sont conservés automatiquement.
+        </p>
+        <div class="gestion-specialisations-grille">
+          ${gestionSpecialisations.map(function (specialisation) {
+            const cle = cleSpecialisationGestionClient(specialisation);
+            const cochee = clesActuelles.includes(cle);
+            const modifiable = clesModifiables.includes(cle);
+            return `
+              <label class="gestion-specialisation-option ${modifiable ? "" : "gestion-specialisation-verrouillee"}">
+                <input
+                  type="checkbox"
+                  value="${echapperHTMLGestion(specialisation)}"
+                  ${cochee ? "checked" : ""}
+                  ${modifiable ? "" : "disabled"}
+                >
+                <span>${echapperHTMLGestion(specialisation)}</span>
+                ${modifiable
+                  ? ""
+                  : `<small title="Vous n’avez pas l’autorisation de modifier ce rôle">🔒</small>`}
+              </label>
+            `;
+          }).join("")}
+        </div>
+      </fieldset>
+    `;
+    valider.disabled = false;
+    return;
   } else if (type === "Départ" || type === "Licenciement") {
     const datesDepart = obtenirDatesDepartGestionParDefaut();
     zone.classList.remove("gestion-cache");
@@ -709,9 +778,18 @@ async function envoyerActionGestion(
     document.getElementById(
       "gestionChoix"
     );
-  const choix = choixElement
+  let choix = choixElement
     ? choixElement.value
     : "";
+  if (type === "Spécialisation") {
+    choix = Array.from(
+      document.querySelectorAll(
+        "#gestionChoixZone .gestion-specialisation-option input:checked"
+      )
+    ).map(function (caseSpecialisation) {
+      return caseSpecialisation.value;
+    }).join(", ");
+  }
   const raison =
     document.getElementById(
       "gestionRaison"
@@ -730,7 +808,7 @@ async function envoyerActionGestion(
 
   const estSortieAvecRetour = type === "Départ" || type === "Licenciement";
 
-  if (!estSortieAvecRetour && !choix) {
+  if (!estSortieAvecRetour && type !== "Spécialisation" && !choix) {
     window.alert(
       "Sélectionnez une possibilité."
     );
@@ -796,6 +874,15 @@ async function envoyerActionGestion(
     }
 
     appliquerDonneesGestionPersonnel(resultat, false);
+    if (typeof resultat.specialisationAuteur === "string") {
+      sessionStorage.setItem(
+        "specialisationUtilisateur",
+        resultat.specialisationAuteur
+      );
+      if (typeof appliquerVisibiliteSelonGrade === "function") {
+        appliquerVisibiliteSelonGrade();
+      }
+    }
     if (typeof synchroniserCacheEffectifGDA === "function") {
       synchroniserCacheEffectifGDA(resultat.effectif);
     }
@@ -1092,6 +1179,7 @@ function iconeTypeGestion(type) {
   if (n === "SANCTION") return "⚠";
   if (n === "DEPART") return "🚪";
   if (n === "MEDAILLE") return "🏅";
+  if (n === "SPECIALISATION") return "🧩";
   return "•";
 }
 
@@ -1134,6 +1222,10 @@ function normaliserTypeHistoriqueGestion(type) {
     return "MEDAILLE";
   }
 
+  if (n.includes("SPECIALISATION")) {
+    return "SPECIALISATION";
+  }
+
   return n;
 }
 
@@ -1150,6 +1242,7 @@ function libelleTypeHistoriqueGestion(type) {
   if (n === "LICENCIEMENT") return "Licenciement";
   if (n === "BLACKLIST") return "Blacklist";
   if (n === "MEDAILLE") return "Médaille";
+  if (n === "SPECIALISATION") return "Spécialisation";
 
   return String(type || "Non renseigné");
 }
@@ -1159,6 +1252,13 @@ function normaliserTexteGestion(texte) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toUpperCase()
+    .trim();
+}
+
+function cleSpecialisationGestionClient(texte) {
+  return normaliserTexteGestion(texte)
+    .replace(/[^A-Z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
