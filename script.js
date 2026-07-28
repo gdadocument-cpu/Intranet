@@ -55,21 +55,29 @@ let revisionDonneesGDA = null;
 let actualisationModuleGdaEnCours = false;
 let requetesEcritureActivesGDA = 0;
 let minuteurEtatEcritureGDA = null;
+let minuteurMasquageEtatEcritureGDA = null;
 let derniereMutationLocaleGDA = null;
+
+function obtenirEtatEcritureGDA() {
+  let etat = document.getElementById("gdaSauvegardeEtat");
+  if (!etat) {
+    etat = document.createElement("div");
+    etat.id = "gdaSauvegardeEtat";
+    etat.setAttribute("role", "status");
+    etat.setAttribute("aria-live", "polite");
+    document.body.appendChild(etat);
+  }
+  return etat;
+}
 
 function demarrerEtatEcritureGDA(action) {
   requetesEcritureActivesGDA += 1;
   if (requetesEcritureActivesGDA > 1) return;
   window.clearTimeout(minuteurEtatEcritureGDA);
+  window.clearTimeout(minuteurMasquageEtatEcritureGDA);
   minuteurEtatEcritureGDA = window.setTimeout(function () {
-    let etat = document.getElementById("gdaSauvegardeEtat");
-    if (!etat) {
-      etat = document.createElement("div");
-      etat.id = "gdaSauvegardeEtat";
-      etat.setAttribute("role", "status");
-      etat.setAttribute("aria-live", "polite");
-      document.body.appendChild(etat);
-    }
+    const etat = obtenirEtatEcritureGDA();
+    etat.dataset.etat = "chargement";
     etat.textContent = /rapport|demande/i.test(String(action || ""))
       ? "Envoi en cours…"
       : "Enregistrement en cours…";
@@ -77,7 +85,7 @@ function demarrerEtatEcritureGDA(action) {
   }, 120);
 }
 
-function terminerEtatEcritureGDA(action, reussie) {
+function terminerEtatEcritureGDA(action, reussie, message) {
   requetesEcritureActivesGDA = Math.max(0, requetesEcritureActivesGDA - 1);
   if (reussie) {
     derniereMutationLocaleGDA = {
@@ -87,9 +95,17 @@ function terminerEtatEcritureGDA(action, reussie) {
   }
   if (requetesEcritureActivesGDA > 0) return;
   window.clearTimeout(minuteurEtatEcritureGDA);
-  const etat = document.getElementById("gdaSauvegardeEtat");
-  if (!etat) return;
-  etat.classList.remove("visible");
+  window.clearTimeout(minuteurMasquageEtatEcritureGDA);
+  const etat = obtenirEtatEcritureGDA();
+  etat.dataset.etat = reussie ? "succes" : "erreur";
+  etat.textContent = String(
+    message ||
+    (reussie ? "Action validée." : "L’action n’a pas pu être enregistrée.")
+  );
+  etat.classList.add("visible");
+  minuteurMasquageEtatEcritureGDA = window.setTimeout(function () {
+    etat.classList.remove("visible");
+  }, reussie ? 1900 : 3600);
 }
 
 function definirModuleGdaActif(nom) {
@@ -308,6 +324,33 @@ if (retourAdministrationButton) {
 
 const fetchNatifGDA = window.fetch.bind(window);
 
+function extraireActionCorpsRequeteGDA(options) {
+  const corps = options && options.body;
+  if (!corps) return "";
+  try {
+    if (corps instanceof URLSearchParams || corps instanceof FormData) {
+      return String(corps.get("action") || "");
+    }
+    if (typeof corps === "string") {
+      const typeContenu = String(
+        options && options.headers && (
+          typeof options.headers.get === "function"
+            ? options.headers.get("Content-Type")
+            : options.headers["Content-Type"] || options.headers["content-type"]
+        ) || ""
+      ).toLowerCase();
+      if (typeContenu.includes("application/json")) {
+        const objet = JSON.parse(corps);
+        return String(objet && objet.action || "");
+      }
+      return String(new URLSearchParams(corps).get("action") || "");
+    }
+  } catch (erreur) {
+    /* Une requête non standard continue sans modifier son corps. */
+  }
+  return "";
+}
+
 const ACTIONS_LECTURE_GDA = new Set([
   "recupererEffectif",
   "recupererRecommandationsObservations",
@@ -332,7 +375,16 @@ const cacheLecturesGDA = new Map();
 const requetesLecturesGDA = new Map();
 const actualisationsForceesGDA = new Set();
 const ACTIONS_SANS_INVALIDATION_CACHE_GDA = new Set([
-  "presenceEnLigne"
+  "presenceEnLigne",
+  "preparerConnexionDiscord",
+  "recupererConnexionDiscord",
+  "restaurerSessionDiscord"
+]);
+const ACTIONS_SANS_INDICATEUR_GDA = new Set([
+  "presenceEnLigne",
+  "preparerConnexionDiscord",
+  "recupererConnexionDiscord",
+  "restaurerSessionDiscord"
 ]);
 const DUREE_CACHE_LECTURE_GDA = 2 * 60 * 1000;
 const CLE_CACHE_SESSION_API_GDA = "gdaApiCacheSessionV2";
@@ -777,11 +829,17 @@ window.fetch = function(ressource, options) {
     // paramètre rend les URLs de préchargement et d'ouverture strictement
     // identiques, donc réellement partageables par le cache.
     url.searchParams.delete("identifiant");
-    const action = url.searchParams.get("action") || "";
+    const action =
+      url.searchParams.get("action") ||
+      extraireActionCorpsRequeteGDA(options);
     const methode = String(
       options && options.method ? options.method : "GET"
     ).toUpperCase();
-    const lecture = methode === "GET" && ACTIONS_LECTURE_GDA.has(action);
+    const lecture = methode === "GET" && (
+      ACTIONS_LECTURE_GDA.has(action) ||
+      action === "presenceEnLigne" ||
+      action.startsWith("verifier")
+    );
 
     if (!lecture) {
       if (action && INVALIDATIONS_CACHE_GDA[action]) {
@@ -789,24 +847,39 @@ window.fetch = function(ressource, options) {
       } else if (action && !ACTIONS_SANS_INVALIDATION_CACHE_GDA.has(action)) {
         viderCacheLecturesGDA();
       }
-      const ecriture = methode !== "GET";
+      // Plusieurs anciens modules enregistrent encore via GET. On se base
+      // donc sur la nature de l'action et non uniquement sur la méthode HTTP.
+      const ecriture =
+        !!action && !ACTIONS_SANS_INDICATEUR_GDA.has(action);
       if (ecriture) demarrerEtatEcritureGDA(action);
       return fetchApiAvecDelaiGDA(url.toString(), options)
         .then(securiserReponseJsonGDA)
         .then(async function (reponse) {
           let reussie = reponse.ok;
+          let messageEtat = "";
           if (ecriture) {
             try {
               const resultat = await reponse.clone().json();
               reussie = reussie && resultat && resultat.success !== false;
+              messageEtat = resultat && resultat.message
+                ? String(resultat.message)
+                : "";
             } catch (erreur) {
               reussie = false;
             }
-            terminerEtatEcritureGDA(action, reussie);
+            terminerEtatEcritureGDA(action, reussie, messageEtat);
           }
           return reponse;
         }, function (erreur) {
-          if (ecriture) terminerEtatEcritureGDA(action, false);
+          if (ecriture) {
+            terminerEtatEcritureGDA(
+              action,
+              false,
+              erreur && erreur.message
+                ? erreur.message
+                : "Impossible de contacter le serveur GDA."
+            );
+          }
           throw erreur;
         });
     }
@@ -915,13 +988,23 @@ function prechargerDonneesGDA() {
   if (utilisateurPeutConsulterSuivisFormationGDA()) actions.push("recupererSuivisFormationInstructeur");
   if (utilisateurPeutConsulterArchivesInstructeurGDA()) actions.push("recupererArchivesInstructeur");
 
+  const suffixesPrechargement = {
+    recupererDeparts: "&horaires=1",
+    recupererGestionPersonnel: "&hierarchie=4"
+  };
+
   const demarrer = function() {
     const file = Array.from(new Set(actions));
     const executerSuivante = async function() {
       while (file.length) {
         const action = file.shift();
         try {
-          await window.fetch(API_URL + "?action=" + encodeURIComponent(action));
+          await window.fetch(
+            API_URL +
+            "?action=" +
+            encodeURIComponent(action) +
+            (suffixesPrechargement[action] || "")
+          );
         } catch (erreur) {
           /* Le préchargement ne bloque jamais l'interface. */
         }
