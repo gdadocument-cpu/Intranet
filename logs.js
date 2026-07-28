@@ -18,7 +18,6 @@ if (logsButton) {
     definirModuleGdaActif("administration-logs");
     if (journalActionsChargeGDA) {
       afficherJournalActionsGDA();
-      chargerJournalActionsGDA(false, true);
     } else {
       chargerJournalActionsGDA();
     }

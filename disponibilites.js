@@ -49,7 +49,10 @@ async function chargerDisponibilites() {
       "identifiantUtilisateur"
     ) || "";
 
-  if (!(typeof gdaReponseEnCache === "function" && gdaReponseEnCache("recupererDisponibilites"))) {
+  if (
+    !disponibilitesChargees &&
+    !(typeof gdaReponseEnCache === "function" && gdaReponseEnCache("recupererDisponibilites"))
+  ) {
     disponibilitesWorkspace.innerHTML = `
       <section id="disponibilitesModule">
 

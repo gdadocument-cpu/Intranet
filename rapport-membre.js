@@ -13,7 +13,6 @@ function ouvrirRapportsPersonnelsGDA() {
 
   if (rapportsPersonnelsCharges) {
     afficherRapportsPersonnelsGDA();
-    chargerRapportsPersonnelsGDA(true);
     return;
   }
 

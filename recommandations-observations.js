@@ -5,7 +5,6 @@ function ouvrirRecommandationsObservationsGDA() {
   definirModuleGdaActif("recommandations-observations");
   if (recommandationsObservationsCharge && recommandationsObservationsDonnees) {
     afficherRecommandationsObservationsGDA(recommandationsObservationsDonnees);
-    chargerRecommandationsObservationsGDA(true);
     return;
   }
   const espace = document.getElementById("workspace");

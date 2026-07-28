@@ -42,7 +42,10 @@ async function chargerGestionPersonnel() {
       "identifiantUtilisateur"
     ) || "";
 
-  if (!(typeof gdaReponseEnCache === "function" && gdaReponseEnCache("recupererGestionPersonnel"))) {
+  if (
+    !gestionPersonnelChargee &&
+    !(typeof gdaReponseEnCache === "function" && gdaReponseEnCache("recupererGestionPersonnel"))
+  ) {
     gestionPersonnelWorkspace.innerHTML = `
       <section id="gestionPersonnelModule">
         <div class="gestion-message">

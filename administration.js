@@ -43,7 +43,10 @@ async function chargerAdministration() {
     return;
   }
 
-  if (!(typeof gdaReponseEnCache === "function" && gdaReponseEnCache("recupererAdministration"))) {
+  if (
+    !administrationChargee &&
+    !(typeof gdaReponseEnCache === "function" && gdaReponseEnCache("recupererAdministration"))
+  ) {
     administrationWorkspace.innerHTML = `
       <section id="administrationModule">
         <div class="administration-message">

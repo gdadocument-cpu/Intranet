@@ -28,7 +28,7 @@ body {
       rgba(0, 0, 0, 0.15),
       rgba(0, 0, 0, 0.15)
     ),
-    url("images/fond.png")
+    url("images/fond.webp")
     center
     center
     no-repeat;
@@ -537,7 +537,7 @@ h1 {
       rgba(0, 0, 0, 0.08),
       rgba(0, 0, 0, 0.08)
     ),
-    url("images/fond.png")
+    url("images/fond.webp")
     center
     center
     no-repeat;
@@ -671,6 +671,22 @@ h1 {
 #gdaSauvegardeEtat.visible {
   opacity: 1;
   transform: none;
+}
+
+/* Les longues listes hors écran sont peintes à l'approche de la zone visible.
+   Le défilement reste identique mais les premiers éléments apparaissent plus vite. */
+#workspace .effectif-member,
+#workspace .rapport-personnel-carte,
+#workspace .demande-absence-carte,
+#workspace .notification-absence-item,
+#workspace .rapports-liste article,
+#workspace .depart-liste article,
+#workspace .disponibilites-liste article,
+#workspace .gestion-historique-liste article,
+#workspace .instructeur-archives-liste article,
+#workspace .instructeur-suivis-liste article {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 84px;
 }
 
 #gdaSauvegardeEtat::before {

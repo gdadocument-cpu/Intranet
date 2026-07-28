@@ -452,9 +452,7 @@ function synchroniserAffichageEffectifIncremental(membres) {
 
     const liste = section.querySelector(".effectif-list");
     if (!liste) return;
-    liste.innerHTML = membresCategorie.map(function (membre) {
-      return creerLigneMembre(membre, effectifMembres.indexOf(membre));
-    }).join("");
+    synchroniserLignesCategorieEffectif(liste, membresCategorie);
     section.dataset.signatureEffectif = signature;
 
     const compteur = section.querySelector(".effectif-section-title span");
@@ -464,7 +462,6 @@ function synchroniserAffichageEffectifIncremental(membres) {
         " membre" +
         (membresCategorie.length > 1 ? "s" : "");
     }
-    brancherInteractionsLignesEffectif(liste);
   });
 
   const compteurGlobal = module.querySelector(".effectif-compteur strong");
@@ -476,6 +473,46 @@ function synchroniserAffichageEffectifIncremental(membres) {
       membres.length + " GDA sur 35 maximum"
     );
   }
+}
+
+function synchroniserLignesCategorieEffectif(liste, membres) {
+  const lignesExistantes = new Map();
+  liste.querySelectorAll(".effectif-member[data-membre-key]").forEach(function(ligne) {
+    lignesExistantes.set(ligne.dataset.membreKey, ligne);
+  });
+
+  membres.forEach(function(membre) {
+    const index = effectifMembres.indexOf(membre);
+    const cle = cleMembreEffectif(membre);
+    const signature = empreinteMembresEffectif([membre]);
+    let ligne = lignesExistantes.get(cle);
+
+    if (!ligne || ligne.dataset.signatureMembre !== signature) {
+      const modele = document.createElement("template");
+      modele.innerHTML = creerLigneMembre(membre, index).trim();
+      const nouvelleLigne = modele.content.firstElementChild;
+      if (ligne) ligne.replaceWith(nouvelleLigne);
+      ligne = nouvelleLigne;
+    } else {
+      ligne.dataset.index = String(index);
+    }
+
+    // Déplacer un nœud existant conserve ses écouteurs et évite de recréer
+    // toute la catégorie quand une seule personne change.
+    liste.appendChild(ligne);
+    lignesExistantes.delete(cle);
+  });
+
+  lignesExistantes.forEach(function(ligne) { ligne.remove(); });
+  brancherInteractionsLignesEffectif(liste);
+}
+
+function cleMembreEffectif(membre) {
+  return [
+    normaliserTexteEffectif(membre && membre.discordId),
+    normaliserTexteEffectif(membre && membre.steamId),
+    normaliserTexteEffectif(membre && membre.nom)
+  ].filter(Boolean).join("|");
 }
 
 function empreinteMembresEffectif(membres) {
@@ -768,6 +805,8 @@ function creerLigneMembre(membre, index) {
     <article
       class="effectif-member"
       data-index="${index}"
+      data-membre-key="${echapperHTML(cleMembreEffectif(membre))}"
+      data-signature-membre="${empreinteMembresEffectif([membre])}"
       tabindex="0"
       role="button"
       aria-label="Voir la fiche de ${echapperHTML(membre.nom)}"

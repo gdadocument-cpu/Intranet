@@ -22,7 +22,7 @@ const SECURITY_HEADERS = {
 
 const CACHE_POLICIES = {
   document: "public, max-age=0, must-revalidate",
-  code: "public, max-age=300, stale-while-revalidate=86400",
+  code: "public, max-age=31536000, immutable",
   image: "public, max-age=604800, stale-while-revalidate=2592000",
   font: "public, max-age=2592000, stale-while-revalidate=2592000",
   other: "public, max-age=3600, stale-while-revalidate=86400"

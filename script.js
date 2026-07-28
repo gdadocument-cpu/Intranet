@@ -57,6 +57,7 @@ let requetesEcritureActivesGDA = 0;
 let minuteurEtatEcritureGDA = null;
 let minuteurMasquageEtatEcritureGDA = null;
 let derniereMutationLocaleGDA = null;
+const modulesDejaRevelesGDA = new Set();
 
 function obtenirEtatEcritureGDA() {
   let etat = document.getElementById("gdaSauvegardeEtat");
@@ -118,6 +119,9 @@ function moduleGdaEstActif(nom) {
 
 function animerChargementProgressifGDA(conteneur) {
   if (!conteneur || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const cleModule = moduleGdaActif || "accueil";
+  if (modulesDejaRevelesGDA.has(cleModule)) return;
+  modulesDejaRevelesGDA.add(cleModule);
   window.requestAnimationFrame(function() {
     const racines = Array.from(conteneur.children).slice(0, 3);
     const blocs = [];
@@ -129,7 +133,7 @@ function animerChargementProgressifGDA(conteneur) {
     blocs.slice(0, 18).forEach(function(bloc, index) {
       if (bloc.classList.contains("gda-revelation")) return;
       bloc.classList.add("gda-revelation");
-      bloc.style.setProperty("--gda-reveal-delay", Math.min(index * 28, 196) + "ms");
+      bloc.style.setProperty("--gda-reveal-delay", Math.min(index * 14, 84) + "ms");
     });
     window.requestAnimationFrame(function() {
       blocs.forEach(function(bloc) { bloc.classList.add("gda-revelation-visible"); });
@@ -143,7 +147,7 @@ function initialiserChargementProgressifGDA() {
   espace.dataset.revelationObservee = "1";
   new MutationObserver(function(mutations) {
     if (mutations.some(function(mutation) { return mutation.addedNodes.length > 0; })) animerChargementProgressifGDA(espace);
-  }).observe(espace, { childList:true, subtree:true });
+  }).observe(espace, { childList:true });
   animerChargementProgressifGDA(espace);
 }
 
@@ -995,8 +999,20 @@ function prechargerDonneesGDA() {
 
   const demarrer = function() {
     const file = Array.from(new Set(actions));
+    const attendreInterfaceDisponible = async function() {
+      while (
+        document.hidden ||
+        requetesEcritureActivesGDA > 0 ||
+        actualisationModuleGdaEnCours
+      ) {
+        await new Promise(function(resoudre) {
+          window.setTimeout(resoudre, 250);
+        });
+      }
+    };
     const executerSuivante = async function() {
       while (file.length) {
+        await attendreInterfaceDisponible();
         const action = file.shift();
         try {
           await window.fetch(
@@ -1008,21 +1024,23 @@ function prechargerDonneesGDA() {
         } catch (erreur) {
           /* Le préchargement ne bloque jamais l'interface. */
         }
+        await new Promise(function(resoudre) {
+          window.setTimeout(resoudre, 40);
+        });
       }
     };
-    // Trois lectures parallèles préparent plus vite les premiers onglets sans
-    // déclencher une rafale excessive sur Google Apps Script.
+    // Deux lectures parallèles évitent de saturer Apps Script pendant qu'un
+    // utilisateur ouvre un onglet ou enregistre une action.
     Promise.allSettled([
-      executerSuivante(),
       executerSuivante(),
       executerSuivante()
     ]);
   };
 
   if ("requestIdleCallback" in window) {
-    window.requestIdleCallback(demarrer, { timeout: 150 });
+    window.requestIdleCallback(demarrer, { timeout: 900 });
   } else {
-    window.setTimeout(demarrer, 80);
+    window.setTimeout(demarrer, 600);
   }
 }
 
@@ -2461,6 +2479,10 @@ function initialiserNotificationsAbsenceGDA(blocUtilisateur) {
 async function actualiserNotificationsAbsenceGDA(silencieux) {
   const identifiant = sessionStorage.getItem("identifiantUtilisateur") || "";
   if (!identifiant) return;
+  if (
+    silencieux &&
+    (document.hidden || requetesEcritureActivesGDA > 0 || actualisationModuleGdaEnCours)
+  ) return;
   try {
     const reponse = await fetch(API_URL + "?action=recupererNotifications" + (silencieux ? "&_=" + Date.now() : ""), { cache: "no-store" });
     const resultat = await reponse.json();
@@ -2595,6 +2617,11 @@ async function actualiserPresenceEnLigne() {
       "identifiantUtilisateur"
     ) || "";
   if (!identifiant) return;
+  if (
+    document.hidden ||
+    requetesEcritureActivesGDA > 0 ||
+    actualisationModuleGdaEnCours
+  ) return;
 
   try {
     const url = API_URL +

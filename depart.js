@@ -53,7 +53,10 @@ async function chargerRegistreDeparts() {
       "identifiantUtilisateur"
     ) || "";
 
-  if (!(typeof gdaReponseEnCache === "function" && gdaReponseEnCache("recupererDeparts"))) {
+  if (
+    !departsCharges &&
+    !(typeof gdaReponseEnCache === "function" && gdaReponseEnCache("recupererDeparts"))
+  ) {
     departWorkspace.innerHTML = `
       <section id="departModule">
 

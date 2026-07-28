@@ -3,8 +3,16 @@ let listeBlanchePersonnes = [];
 let listeBlanchePermissions = [];
 let listeBlancheSelectionId = "";
 let listeBlancheModeEdition = false;
+let listeBlancheChargee = false;
 
-listeBlancheButton?.addEventListener("click", chargerListeBlancheGDA);
+listeBlancheButton?.addEventListener("click", function() {
+  definirModuleGdaActif("administration-liste-blanche");
+  if (listeBlancheChargee) {
+    afficherListeBlancheGDA();
+  } else {
+    chargerListeBlancheGDA();
+  }
+});
 
 function utilisateurPeutGererListeBlancheGDA() {
   return sessionStorage.getItem("proprietaireUtilisateur") === "true" ||
@@ -39,11 +47,14 @@ async function chargerListeBlancheGDA() {
   definirModuleGdaActif("administration-liste-blanche");
   const workspace = document.getElementById("workspace");
   if (!workspace) return;
-  workspace.innerHTML = '<section class="liste-blanche-module"><div class="liste-blanche-message">Chargement de la liste blanche…</div></section>';
+  if (!listeBlancheChargee) {
+    workspace.innerHTML = '<section class="liste-blanche-module"><div class="liste-blanche-message">Chargement de la liste blanche…</div></section>';
+  }
   try {
     const resultat = await requeteListeBlancheGDA("recupererListeBlanche");
     listeBlanchePersonnes = Array.isArray(resultat.personnes) ? resultat.personnes : [];
     listeBlanchePermissions = Array.isArray(resultat.permissions) ? resultat.permissions : [];
+    listeBlancheChargee = true;
     if (!listeBlanchePersonnes.some(p => p.id === listeBlancheSelectionId)) {
       listeBlancheSelectionId = "";
       listeBlancheModeEdition = false;

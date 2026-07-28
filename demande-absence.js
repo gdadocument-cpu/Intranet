@@ -10,7 +10,6 @@ function ouvrirDemandesAbsenceGDA() {
   demandeAbsenceEdition = null;
   if (demandesAbsenceChargees) {
     afficherDemandesAbsenceGDA();
-    chargerDemandesAbsenceGDA(true);
     return;
   }
   const zone = document.getElementById("workspace");

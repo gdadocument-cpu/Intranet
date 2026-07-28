@@ -12,7 +12,6 @@ function ouvrirEffectifPublicGDA() {
 
   if (effectifPublicCharge && effectifPublicDernierResultat) {
     afficherEffectifPublicGDA(effectifPublicDernierResultat);
-    chargerEffectifPublicGDA(false, true);
     return;
   }
 
