@@ -1724,6 +1724,12 @@ function creerBadgesListe(valeur, type) {
   const elements =
     decouperValeursEffectif(valeur);
 
+  // L'ancien backend enregistrait "Clean" comme une cellule vide.
+  // Conserver cet affichage pour les membres déjà enregistrés ainsi.
+  if (!elements.length && type === "sanction") {
+    return creerBadgesListe("Clean", "sanction");
+  }
+
   if (!elements.length) {
     return `
       <span class="effectif-badge badge-vide">
