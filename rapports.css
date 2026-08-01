@@ -49,7 +49,8 @@
 }
 
 .rapports-bouton-principal,
-.rapports-bouton-secondaire {
+.rapports-bouton-secondaire,
+.rapports-bouton-discord {
   min-height: 42px;
   padding: 10px 17px;
 
@@ -80,8 +81,26 @@
   background: rgba(8, 34, 61, 0.72);
 }
 
+.rapports-bouton-discord {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #7b86ff;
+  background: #5865f2;
+  box-shadow: 0 0 16px rgba(88, 101, 242, 0.32);
+}
+
+.rapports-icone-discord {
+  display: block;
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
 .rapports-bouton-principal:hover,
-.rapports-bouton-secondaire:hover {
+.rapports-bouton-secondaire:hover,
+.rapports-bouton-discord:hover {
   transform: translateY(-2px);
   border-color: #9dd6ff;
   box-shadow: 0 0 20px rgba(69, 164, 244, 0.42);
@@ -91,6 +110,12 @@
   opacity: 0.6;
   cursor: wait;
   transform: none;
+}
+
+.rapports-bouton-discord:hover {
+  background: #6975f5;
+  border-color: #aab1ff;
+  box-shadow: 0 0 22px rgba(88, 101, 242, 0.48);
 }
 
 .rapports-resume {
@@ -253,6 +278,7 @@
 }
 
 .rapports-formulaire-bloc,
+.rapports-formulaire-discord-bloc,
 .rapports-barre-recherche {
   margin-bottom: 22px;
   padding: 20px;
@@ -262,6 +288,194 @@
 
   background: rgba(5, 24, 44, 0.76);
   box-shadow: inset 0 0 18px rgba(50, 139, 219, 0.05);
+}
+
+.rapports-formulaire-discord-bloc {
+  margin-top: -8px;
+  border-color: rgba(125, 136, 255, 0.48);
+  background: linear-gradient(135deg, rgba(44, 49, 108, 0.78), rgba(10, 22, 47, 0.9));
+}
+
+.rapports-discord-introduction {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 14px;
+  color: #ffffff;
+}
+
+.rapports-discord-introduction > .rapports-icone-discord {
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  color: #8791ff;
+}
+
+.rapports-discord-introduction strong,
+.rapports-discord-introduction span {
+  display: block;
+}
+
+.rapports-discord-introduction span {
+  margin-top: 3px;
+  color: #b9c1e8;
+  font-size: 12px;
+}
+
+.rapports-formulaire-discord {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.75fr) minmax(300px, 1.7fr) auto;
+  align-items: end;
+  gap: 11px;
+}
+
+.rapports-formulaire-discord label,
+.rapports-discord-personne-champ {
+  min-width: 0;
+}
+
+.rapports-discord-personne-champ {
+  position: relative;
+}
+
+.rapports-label-visuel {
+  display: block;
+  margin-bottom: 6px;
+  color: #dce0ff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.rapports-formulaire-discord input,
+.rapports-formulaire-discord > button,
+.rapports-discord-personne-bouton {
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  border-radius: 9px;
+  font: inherit;
+}
+
+.rapports-formulaire-discord input {
+  padding: 10px 12px;
+  border: 1px solid rgba(139, 149, 255, 0.55);
+  outline: none;
+  color: #ffffff;
+  background: rgba(7, 13, 34, 0.88);
+}
+
+.rapports-formulaire-discord input:focus {
+  border-color: #9ca5ff;
+  box-shadow: 0 0 13px rgba(88, 101, 242, 0.4);
+}
+
+.rapports-formulaire-discord > button {
+  padding: 9px 15px;
+  border: 1px solid #8e98ff;
+  background: #5865f2;
+  color: #ffffff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.rapports-formulaire-discord > button:hover {
+  background: #6975f5;
+}
+
+.rapports-formulaire-discord > button:disabled {
+  opacity: 0.62;
+  cursor: wait;
+}
+
+.rapports-discord-personne-bouton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(139, 149, 255, 0.55);
+  outline: none;
+  color: #ffffff;
+  background: rgba(7, 13, 34, 0.88);
+  text-align: left;
+  cursor: pointer;
+}
+
+.rapports-discord-personne-bouton:hover,
+.rapports-discord-personne-bouton:focus,
+.rapports-discord-personne-bouton[aria-expanded="true"] {
+  border-color: #9ca5ff;
+  box-shadow: 0 0 13px rgba(88, 101, 242, 0.4);
+}
+
+.rapports-discord-personne-bouton span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rapports-discord-personne-bouton em {
+  flex: 0 0 auto;
+  color: #aeb5ff;
+  font-size: 18px;
+  font-style: normal;
+  transition: transform 0.18s ease;
+}
+
+.rapports-discord-personne-bouton[aria-expanded="true"] em {
+  transform: rotate(180deg);
+}
+
+.rapports-discord-personne-liste {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 6px);
+  right: 0;
+  left: 0;
+  overflow-y: auto;
+  max-height: 260px;
+  padding: 6px;
+  border: 1px solid rgba(139, 149, 255, 0.62);
+  border-radius: 10px;
+  background: #11172d;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.46);
+}
+
+.rapports-discord-personne-liste[hidden] {
+  display: none;
+}
+
+.rapports-discord-personne-option {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 7px;
+  color: #e7eaff;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rapports-discord-personne-option:hover,
+.rapports-discord-personne-option:focus,
+.rapports-discord-personne-option[aria-selected="true"] {
+  outline: none;
+  background: #5865f2;
+  color: #ffffff;
+}
+
+.rapports-discord-personne-option strong {
+  flex: 0 0 auto;
+}
+
+.rapports-discord-personne-option span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .rapports-bloc-titre {
@@ -541,6 +755,62 @@
   overflow-wrap: anywhere;
 }
 
+.rapport-contenu-discord {
+  background: rgba(88, 101, 242, 0.08);
+}
+
+.rapport-contenu-discord h5 {
+  color: #aeb5ff;
+}
+
+.rapport-discord-carte-lien {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+  padding: 14px 15px;
+  border: 1px solid rgba(125, 136, 255, 0.45);
+  border-radius: 11px;
+  color: #ffffff;
+  background: linear-gradient(135deg, rgba(88, 101, 242, 0.3), rgba(29, 34, 72, 0.66));
+  text-decoration: none;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.rapport-discord-carte-lien:hover {
+  transform: translateY(-1px);
+  border-color: #9fa7ff;
+  background: linear-gradient(135deg, rgba(88, 101, 242, 0.42), rgba(35, 40, 83, 0.76));
+}
+
+.rapport-discord-carte-icone {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  color: #ffffff;
+  background: #5865f2;
+}
+
+.rapport-discord-carte-lien strong,
+.rapport-discord-carte-lien small {
+  display: block;
+}
+
+.rapport-discord-carte-lien small {
+  overflow: hidden;
+  margin-top: 4px;
+  color: #b7c1de;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rapport-discord-carte-fleche {
+  color: #c8ceff;
+  font-size: 22px;
+}
+
 .rapport-commentaire {
   background: rgba(105, 80, 20, 0.1);
 }
@@ -672,6 +942,10 @@
   }
 
   .rapports-formulaire {
+    grid-template-columns: 1fr;
+  }
+
+  .rapports-formulaire-discord {
     grid-template-columns: 1fr;
   }
 
