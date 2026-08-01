@@ -607,12 +607,14 @@ function afficherChoixGestion() {
 
   if (!membre || !type) return;
 
+  const gradeEffectifOfficier =
+    membre.gradeEffectifOfficier || membre.grade || "";
   let valeurs = [];
   let libelle = "";
 
   if (type === "Promotion") {
     const rang = obtenirRangGradeGestion(
-      membre.grade
+      gradeEffectifOfficier
     );
     valeurs = rang > 0
       ? gestionGrades.slice(0, rang)
@@ -620,7 +622,7 @@ function afficherChoixGestion() {
     libelle = "Nouveau grade supérieur";
   } else if (type === "Rétrogradation") {
     const rang = obtenirRangGradeGestion(
-      membre.grade
+      gradeEffectifOfficier
     );
     valeurs = rang >= 0
       ? gestionGrades.slice(rang + 1)

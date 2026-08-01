@@ -1084,15 +1084,17 @@ function ouvrirEditionMembre(membre, index) {
     return;
   }
 
+  const gradeEffectifOfficier =
+    membre.gradeEffectifOfficier || membre.grade || "";
   const grades = effectifGradesEdition.slice();
   if (
-    membre.grade &&
+    gradeEffectifOfficier &&
     !grades.some(function (grade) {
       return normaliserTexteEffectif(grade) ===
-        normaliserTexteEffectif(membre.grade);
+        normaliserTexteEffectif(gradeEffectifOfficier);
     })
   ) {
-    grades.push(membre.grade);
+    grades.push(gradeEffectifOfficier);
   }
 
   workspace.innerHTML = `
@@ -1131,7 +1133,7 @@ function ouvrirEditionMembre(membre, index) {
             ${grades.map(function (grade) {
               const selectionne =
                 normaliserTexteEffectif(grade) ===
-                normaliserTexteEffectif(membre.grade);
+                normaliserTexteEffectif(gradeEffectifOfficier);
               return `
                 <option value="${echapperHTML(grade)}"${selectionne ? " selected" : ""}>
                   ${echapperHTML(grade)}
