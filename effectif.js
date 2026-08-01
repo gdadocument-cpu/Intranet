@@ -110,9 +110,9 @@ async function chargerEffectif(options) {
     }
 
     effectifMembres = Array.isArray(resultat.membres)
-      ? resultat.membres.filter(
-          estMembreReelEffectif
-        )
+      ? resultat.membres
+        .filter(estMembreReelEffectif)
+        .map(preparerMembreEffectifOfficier)
       : [];
     effectifPeutModifier =
       resultat.peutModifier === true;
@@ -168,6 +168,22 @@ function cleCacheLocalEffectif(identifiant) {
   );
 }
 
+function preparerMembreEffectifOfficier(membre) {
+  const resultat = Object.assign({}, membre || {});
+  const gradeEffectifGDA =
+    resultat.gradeEffectifGDA || resultat.grade || "";
+  const gradeEffectifOfficier =
+    resultat.gradeEffectifOfficier || resultat.grade || "";
+
+  resultat.gradeEffectifGDA = gradeEffectifGDA;
+  resultat.gradeEffectifOfficier = gradeEffectifOfficier;
+  // Dans ce module seulement, `grade` désigne le grade instantané de
+  // l'Effectif officier. Les autres modules conservent le grade GDA renvoyé
+  // par le backend.
+  resultat.grade = gradeEffectifOfficier;
+  return resultat;
+}
+
 function restaurerCacheLocalEffectif(identifiant) {
   if (!identifiant) return false;
   try {
@@ -184,8 +200,9 @@ function restaurerCacheLocalEffectif(identifiant) {
     ) {
       return false;
     }
-    effectifMembres =
-      cache.membres.filter(estMembreReelEffectif);
+    effectifMembres = cache.membres
+      .filter(estMembreReelEffectif)
+      .map(preparerMembreEffectifOfficier);
     effectifPeutModifier =
       cache.peutModifier === true;
     effectifPeutAjouter =
@@ -242,7 +259,9 @@ function supprimerCacheLocalEffectif() {
 
 function synchroniserCacheEffectifGDA(membres) {
   if (!Array.isArray(membres)) return;
-  effectifMembres = membres.filter(estMembreReelEffectif);
+  effectifMembres = membres
+    .filter(estMembreReelEffectif)
+    .map(preparerMembreEffectifOfficier);
   effectifCharge = true;
   memoriserCacheLocalEffectif(
     sessionStorage.getItem("identifiantUtilisateur") || ""
@@ -718,7 +737,9 @@ async function enregistrerAjoutMembreEffectif(event) {
       throw new Error(resultat.message || "Impossible d’ajouter ce GDA.");
     }
     if (resultat.membre) {
-      effectifMembres.push(resultat.membre);
+      effectifMembres.push(
+        preparerMembreEffectifOfficier(resultat.membre)
+      );
     }
     afficherEffectif(effectifMembres);
     afficherNotificationGDA(resultat.message || "Nouveau GDA ajouté.", "succes");
@@ -1539,7 +1560,8 @@ async function enregistrerModificationsEffectif(
       resultat.peutModifier === true;
 
     if (resultat.membre) {
-      effectifMembres[index] = resultat.membre;
+      effectifMembres[index] =
+        preparerMembreEffectifOfficier(resultat.membre);
     }
 
     ouvrirFicheMembre(index);
