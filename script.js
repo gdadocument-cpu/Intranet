@@ -391,7 +391,7 @@ const ACTIONS_SANS_INDICATEUR_GDA = new Set([
   "restaurerSessionDiscord"
 ]);
 const DUREE_CACHE_LECTURE_GDA = 2 * 60 * 1000;
-const CLE_CACHE_SESSION_API_GDA = "gdaApiCacheSessionV2";
+const CLE_CACHE_SESSION_API_GDA = "gdaApiCacheSessionV3";
 const TAILLE_MAX_CACHE_SESSION_GDA = 1500000;
 const DELAI_MAX_API_GDA = 45 * 1000;
 let sessionPrechargeeGDA = "";
@@ -1268,7 +1268,7 @@ function terminerConnexionDiscord(resultat, identifiant) {
   sessionStorage.setItem("gradeUtilisateur", resultat.grade || "");
   sessionStorage.setItem(
     "gradeEffectifPublicUtilisateur",
-    resultat.gradeAffiche || resultat.grade || ""
+    resultat.gradeAffiche || ""
   );
   sessionStorage.setItem(
     "specialisationUtilisateur",
@@ -1410,7 +1410,7 @@ function lancerChargement() {
 
       const grade =
         sessionStorage.getItem("gradeEffectifPublicUtilisateur") ||
-        sessionStorage.getItem("gradeUtilisateur") || "";
+        "Grade non renseigné";
 
       bar.style.display = "none";
       percent.style.display = "none";
@@ -1477,8 +1477,7 @@ function afficherUtilisateur() {
 
   const grade =
     sessionStorage.getItem("gradeEffectifPublicUtilisateur") ||
-    sessionStorage.getItem("gradeUtilisateur") ||
-    "Grade inconnu";
+    "Grade non renseigné";
 
   let blocUtilisateur =
     document.getElementById("userInfo");
@@ -2228,7 +2227,8 @@ function transmettreIdentiteMedecinGDA(frame) {
   frame.contentWindow.postMessage({
     type: "gda-session-medecin",
     identifiant: sessionStorage.getItem("identifiantUtilisateur") || "",
-    grade: sessionStorage.getItem("gradeUtilisateur") || "",
+    grade: sessionStorage.getItem("gradeEffectifPublicUtilisateur") || "",
+    gradeEffectifOfficier: sessionStorage.getItem("gradeUtilisateur") || "",
     specialisation: sessionStorage.getItem("specialisationUtilisateur") || ""
   }, window.location.origin);
 }

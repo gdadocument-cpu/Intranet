@@ -11,7 +11,7 @@ let effectifSanctionsEdition = [];
 let effectifMedaillesEdition = [];
 let effectifSpecialisationsEdition = [];
 let effectifCharge = false;
-const CLE_CACHE_LOCAL_EFFECTIF = "gdaEffectifOfficierLocalV1";
+const CLE_CACHE_LOCAL_EFFECTIF = "gdaEffectifOfficierLocalV2";
 const DUREE_CACHE_LOCAL_EFFECTIF = 30 * 60 * 1000;
 const ORDRE_GRADES_EFFECTIF = [
   "LIEUTENANT-COLONEL",

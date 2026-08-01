@@ -60,7 +60,8 @@ function appliquerResultatRapportsPersonnelsGDA(resultat) {
   rapportPersonnelNom = resultat.nom ||
     sessionStorage.getItem("nomUtilisateur") || "";
   rapportPersonnelGrade = resultat.grade ||
-    sessionStorage.getItem("gradeUtilisateur") || "";
+    sessionStorage.getItem("gradeEffectifPublicUtilisateur") ||
+    "Grade non renseigné";
   rapportsPersonnelsCharges = true;
   if (moduleGdaEstActif("rapports-personnels")) {
     afficherRapportsPersonnelsGDA();

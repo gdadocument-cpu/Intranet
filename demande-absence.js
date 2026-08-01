@@ -53,7 +53,9 @@ async function chargerDemandesAbsenceGDA(silencieux) {
 function appliquerDemandesAbsenceGDA(resultat) {
   demandesAbsenceMembre = Array.isArray(resultat.demandes) ? resultat.demandes : [];
   demandesAbsenceNom = resultat.nom || sessionStorage.getItem("nomUtilisateur") || "";
-  demandesAbsenceGrade = resultat.grade || sessionStorage.getItem("gradeUtilisateur") || "";
+  demandesAbsenceGrade = resultat.grade ||
+    sessionStorage.getItem("gradeEffectifPublicUtilisateur") ||
+    "Grade non renseigné";
   demandesAbsenceChargees = true;
   if (moduleGdaEstActif("demandes-absence")) afficherDemandesAbsenceGDA();
   if (resultat.message && moduleGdaEstActif("demandes-absence")) {
