@@ -10,6 +10,7 @@ let rapportsRegistre = [];
 let rapportsMembres = [];
 let rechercheRapport = "";
 let formulaireRapportOuvert = false;
+let formulaireRapportDiscordOuvert = false;
 let categorieRapportsActive = "EN ATTENTE";
 let rapportsPeutValider = false;
 let rapportsPeutArchiver = false;
@@ -116,6 +117,19 @@ function afficherRapports() {
         </div>
 
         <div class="rapports-header-actions">
+          ${rapportsPeutValider
+            ? `
+              <button
+                id="rapportsDiscord"
+                class="rapports-bouton-discord"
+                type="button"
+                aria-expanded="${formulaireRapportDiscordOuvert}"
+              >
+                ${creerIconeDiscordRapports()}
+                Rapport Discord
+              </button>
+            `
+            : ""}
           <button
             id="rapportsActualiser"
             class="rapports-bouton-secondaire"
@@ -126,6 +140,10 @@ function afficherRapports() {
 
         </div>
       </header>
+
+      ${formulaireRapportDiscordOuvert
+        ? creerFormulaireRapportDiscord()
+        : ""}
 
       <section class="rapports-resume">
         <article class="rapports-indicateur">
@@ -346,6 +364,99 @@ function creerFormulaireRapport() {
   `;
 }
 
+function creerIconeDiscordRapports() {
+  return `
+    <svg
+      class="rapports-icone-discord"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M19.6 5.3A17.4 17.4 0 0 0 15.4 4l-.5 1a15.7 15.7 0 0 0-5.8 0l-.5-1a17.4 17.4 0 0 0-4.2 1.3C1.7 9.3 1 13.2 1.4 17a17 17 0 0 0 5.1 2.6l1.2-1.7c-.7-.3-1.4-.7-2-1.2l.5-.4c3.8 1.8 7.9 1.8 11.6 0l.6.4c-.7.5-1.4.9-2.1 1.2l1.2 1.7a17 17 0 0 0 5.1-2.6c.5-4.4-.8-8.3-3-11.7ZM8.5 14.6c-1.1 0-2-1-2-2.2s.9-2.2 2-2.2 2 1 2 2.2-.9 2.2-2 2.2Zm7 0c-1.1 0-2-1-2-2.2s.9-2.2 2-2.2 2 1 2 2.2-.9 2.2-2 2.2Z"/>
+    </svg>
+  `;
+}
+
+function creerFormulaireRapportDiscord() {
+  const membres = [...rapportsMembres].sort(function (a, b) {
+    const rangA = obtenirRangGradeRapports(
+      a.gradeEffectifOfficier || a.grade
+    );
+    const rangB = obtenirRangGradeRapports(
+      b.gradeEffectifOfficier || b.grade
+    );
+    if (rangA !== rangB) return rangA - rangB;
+    return String(a.nom || "").localeCompare(String(b.nom || ""), "fr");
+  });
+
+  const options = membres.map(function (membre) {
+    const gradeOfficier = membre.gradeEffectifOfficier || membre.grade || "Grade non renseigné";
+    return `
+      <button
+        class="rapports-discord-personne-option"
+        type="button"
+        role="option"
+        data-rapport-discord-personne="${echapperHTMLRapports(membre.nom)}"
+        data-rapport-discord-libelle="${echapperHTMLRapports(gradeOfficier)} — ${echapperHTMLRapports(membre.nom)}"
+      >
+        <strong>${echapperHTMLRapports(gradeOfficier)}</strong>
+        <span>— ${echapperHTMLRapports(membre.nom)}</span>
+      </button>
+    `;
+  }).join("");
+
+  return `
+    <section class="rapports-formulaire-discord-bloc">
+      <div class="rapports-discord-introduction">
+        ${creerIconeDiscordRapports()}
+        <div>
+          <strong>Ajouter un rapport reçu sur Discord</strong>
+          <span>Le grade GDA actuel sera enregistré et restera ensuite figé.</span>
+        </div>
+      </div>
+      <form id="rapportsFormulaireDiscord" class="rapports-formulaire-discord">
+        <div class="rapports-discord-personne-champ">
+          <span class="rapports-label-visuel">GDA concerné</span>
+          <input id="rapportDiscordPersonne" type="hidden" value="">
+          <button
+            id="rapportDiscordPersonneBouton"
+            class="rapports-discord-personne-bouton"
+            type="button"
+            aria-haspopup="listbox"
+            aria-expanded="false"
+          >
+            <span>Sélectionner un GDA</span>
+            <em aria-hidden="true">⌄</em>
+          </button>
+          <div
+            id="rapportDiscordPersonneListe"
+            class="rapports-discord-personne-liste"
+            role="listbox"
+            hidden
+          >
+            ${options}
+          </div>
+        </div>
+        <label class="rapports-discord-lien-champ">
+          <span class="rapports-label-visuel">Lien du message</span>
+          <input
+            id="rapportDiscordLien"
+            type="url"
+            inputmode="url"
+            maxlength="500"
+            placeholder="Coller le lien du rapport Discord"
+            autocomplete="off"
+            required
+          >
+        </label>
+        <button id="rapportDiscordEnvoyer" type="submit">
+          Ajouter dans « Lus et validés »
+        </button>
+      </form>
+    </section>
+  `;
+}
+
 function brancherEvenementsRapports() {
   document
     .querySelectorAll("[data-rapport-categorie]")
@@ -384,6 +495,14 @@ function brancherEvenementsRapports() {
         chargerRapports(true);
       }
     );
+  }
+
+  const discord = document.getElementById("rapportsDiscord");
+  if (discord) {
+    discord.addEventListener("click", function () {
+      formulaireRapportDiscordOuvert = !formulaireRapportDiscordOuvert;
+      afficherRapports();
+    });
   }
 
   const nouveau =
@@ -429,7 +548,73 @@ function brancherEvenementsRapports() {
       envoyerNouveauRapport
     );
   }
+
+
+  const formulaireDiscord = document.getElementById("rapportsFormulaireDiscord");
+  if (formulaireDiscord) {
+    formulaireDiscord.addEventListener("submit", envoyerRapportDiscord);
+    brancherListePersonnesRapportDiscord();
+  }
 }
+
+function brancherListePersonnesRapportDiscord() {
+  const bouton = document.getElementById("rapportDiscordPersonneBouton");
+  const liste = document.getElementById("rapportDiscordPersonneListe");
+  const valeur = document.getElementById("rapportDiscordPersonne");
+  if (!bouton || !liste || !valeur) return;
+
+  function fermerListe() {
+    liste.hidden = true;
+    bouton.setAttribute("aria-expanded", "false");
+  }
+
+  bouton.addEventListener("click", function () {
+    const doitOuvrir = liste.hidden;
+    liste.hidden = !doitOuvrir;
+    bouton.setAttribute("aria-expanded", String(doitOuvrir));
+    if (doitOuvrir) {
+      const premiereOption = liste.querySelector("[data-rapport-discord-personne]");
+      if (premiereOption) premiereOption.focus();
+    }
+  });
+
+  liste.querySelectorAll("[data-rapport-discord-personne]").forEach(function (option) {
+    option.addEventListener("click", function () {
+      valeur.value = option.dataset.rapportDiscordPersonne || "";
+      bouton.querySelector("span").textContent =
+        option.dataset.rapportDiscordLibelle || "Sélectionner un GDA";
+      liste.querySelectorAll("[data-rapport-discord-personne]").forEach(function (element) {
+        element.setAttribute("aria-selected", String(element === option));
+      });
+      fermerListe();
+      bouton.focus();
+    });
+  });
+
+  formulaireRapportDiscordFermerListe = fermerListe;
+}
+
+let formulaireRapportDiscordFermerListe = null;
+
+document.addEventListener("click", function (evenement) {
+  const champ = document.querySelector(".rapports-discord-personne-champ");
+  if (
+    champ &&
+    !champ.contains(evenement.target) &&
+    typeof formulaireRapportDiscordFermerListe === "function"
+  ) {
+    formulaireRapportDiscordFermerListe();
+  }
+});
+
+document.addEventListener("keydown", function (evenement) {
+  if (
+    evenement.key === "Escape" &&
+    typeof formulaireRapportDiscordFermerListe === "function"
+  ) {
+    formulaireRapportDiscordFermerListe();
+  }
+});
 
 function afficherListeRapports() {
   const zone =
@@ -532,10 +717,7 @@ function creerCarteRapport(rapport) {
         </div>
       </header>
 
-      <section class="rapport-contenu">
-        <h5>Rapport</h5>
-        <p>${formaterTexteRapport(rapport.rapport)}</p>
-      </section>
+      ${creerContenuCarteRapport(rapport)}
 
       ${rapport.commentaire
         ? `
@@ -557,6 +739,47 @@ function creerCarteRapport(rapport) {
 
       ${creerPiedCarteRapport(rapport)}
     </article>
+  `;
+}
+
+function extraireLienRapportDiscord(texte) {
+  const correspondance = String(texte || "").match(
+    /^(?:\[RAPPORT DISCORD\]|Rapport Discord)\s*\n(https:\/\/discord\.com\/channels\/(?:\d+|@me)\/\d+\/\d+)\s*$/i
+  );
+  return correspondance ? correspondance[1] : "";
+}
+
+function creerContenuCarteRapport(rapport) {
+  const lienDiscord = extraireLienRapportDiscord(rapport.rapport);
+  if (!lienDiscord) {
+    return `
+      <section class="rapport-contenu">
+        <h5>Rapport</h5>
+        <p>${formaterTexteRapport(rapport.rapport)}</p>
+      </section>
+    `;
+  }
+
+  const lienSecurise = echapperHTMLRapports(lienDiscord);
+  return `
+    <section class="rapport-contenu rapport-contenu-discord">
+      <h5>Rapport Discord</h5>
+      <a
+        class="rapport-discord-carte-lien"
+        href="${lienSecurise}"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span class="rapport-discord-carte-icone">
+          ${creerIconeDiscordRapports()}
+        </span>
+        <span>
+          <strong>Ouvrir le message sur Discord</strong>
+          <small>${lienSecurise}</small>
+        </span>
+        <span class="rapport-discord-carte-fleche" aria-hidden="true">↗</span>
+      </a>
+    </section>
   `;
 }
 
@@ -788,6 +1011,59 @@ async function envoyerNouveauRapport(
     bouton.disabled = false;
     bouton.textContent =
       "Enregistrer le rapport";
+  }
+}
+
+async function envoyerRapportDiscord(evenement) {
+  evenement.preventDefault();
+
+  const identifiant = sessionStorage.getItem("identifiantUtilisateur") || "";
+  const personne = document.getElementById("rapportDiscordPersonne").value.trim();
+  const lienDiscord = document.getElementById("rapportDiscordLien").value.trim();
+  const bouton = document.getElementById("rapportDiscordEnvoyer");
+
+  if (!personne || !lienDiscord) {
+    window.alert("Sélectionnez un GDA et collez le lien direct du message Discord.");
+    return;
+  }
+
+  bouton.disabled = true;
+  bouton.textContent = "Ajout en cours...";
+
+  try {
+    const url = RAPPORTS_API_URL +
+      "?action=ajouterRapportDiscord" +
+      "&identifiant=" + encodeURIComponent(identifiant) +
+      "&personne=" + encodeURIComponent(personne) +
+      "&lienDiscord=" + encodeURIComponent(lienDiscord);
+    const reponse = await fetch(url);
+    const resultat = await reponse.json();
+
+    if (!resultat.success) {
+      throw new Error(
+        resultat.message || "Impossible d’ajouter le rapport Discord."
+      );
+    }
+
+    synchroniserEffectifDepuisRapports(resultat);
+    rapportsRegistre = Array.isArray(resultat.rapports)
+      ? resultat.rapports
+      : rapportsRegistre;
+    rapportsCharges = true;
+    formulaireRapportDiscordOuvert = false;
+    categorieRapportsActive = "LU";
+    afficherRapports();
+    afficherNotificationGDA(
+      resultat.message || "Rapport Discord ajouté.",
+      "succes"
+    );
+  } catch (erreur) {
+    console.error(erreur);
+    window.alert(
+      erreur.message || "Impossible de contacter le serveur GDA."
+    );
+    bouton.disabled = false;
+    bouton.textContent = "Ajouter dans « Lus et validés »";
   }
 }
 

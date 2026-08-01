@@ -417,6 +417,7 @@ const INVALIDATIONS_CACHE_GDA = {
   modifierDepart: ["recupererDeparts"],
   supprimerDepart: ["recupererDeparts"],
   ajouterRapport: ["recupererRapports", "recupererEffectif"],
+  ajouterRapportDiscord: ["recupererRapports", "recupererEffectif"],
   ajouterMonRapport: ["recupererRapports", "recupererMesRapports", "recupererEffectif"],
   modifierMonRapport: ["recupererRapports", "recupererMesRapports"],
   supprimerMonRapport: ["recupererRapports", "recupererMesRapports", "recupererEffectif"],
