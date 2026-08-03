@@ -1487,7 +1487,55 @@ body.lien-ouvert .header {
   }
   body.mode-admin .admin-topbar-fixe { display: flex; }
   body.mode-admin .console { margin-top: 140px; }
-body.mode-boutons #contenuLienMDC{margin-top:140px;}
+body.mode-boutons #contenuLienMDC{margin-top:90px;}
+
+  /* Empêche les écrans longs (notamment Gestion des rapports) d'être centrés
+     verticalement hors de la zone visible. Le contenu commence toujours en haut. */
+  body.mode-boutons,
+  body.mode-admin {
+    align-items: flex-start;
+  }
+  body.mode-boutons .console,
+  body.mode-admin .console {
+    margin-top: 0;
+    padding-top: 90px;
+  }
+  body.mode-admin .console { margin-top: 0; }
+
+  /* Zone de consultation des rapports : hauteur adaptée à l'écran et défilement interne. */
+  body.mode-admin #rapportValidation {
+    max-height: calc(100vh - 300px);
+    min-height: 260px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #4f80c7 #0b1526;
+  }
+  body.mode-admin #rapportValidation::-webkit-scrollbar { width: 10px; }
+  body.mode-admin #rapportValidation::-webkit-scrollbar-track { background: #0b1526; }
+  body.mode-admin #rapportValidation::-webkit-scrollbar-thumb {
+    background: #315886;
+    border: 2px solid #0b1526;
+    border-radius: 99px;
+  }
+
+  @media (max-height: 760px) and (min-width: 901px) {
+    body.mode-boutons .console,
+    body.mode-admin .console { padding-top: 72px; }
+    body.mode-boutons #contenuLienMDC { margin-top: 0; }
+    body.mode-admin #rapportValidation { max-height: calc(100vh - 245px); }
+    .rapport-mdc-wrap { padding: 16px; }
+    .rapport-mdc-header { padding: 13px 16px; }
+    .rapport-mdc-grid { margin-top: 12px; }
+  }
+
+  @media (max-width: 900px) {
+    body.mode-boutons .console,
+    body.mode-admin .console { padding-top: 0; }
+    body.mode-admin #rapportValidation {
+      max-height: 62vh;
+      min-height: 220px;
+    }
+  }
   .btn-admin-tab {
     background: rgba(255,255,255,0.04);
     border: 1px solid var(--line-bright);
