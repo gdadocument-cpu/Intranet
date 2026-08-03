@@ -647,15 +647,31 @@ body.lien-ouvert .header {
   .rapport-validation-btn:hover { background: rgba(49, 160, 113, .36); }
 
   /* Gestion des rapports : la liste reste consultable même avec beaucoup d'entrées. */
+  /* Gestion des rapports : le cadre reste dans la zone centrale et seule la liste défile. */
+  body.mode-rapport-gestion {
+    overflow: hidden;
+  }
+  body.mode-rapport-gestion #contenuLienMDC {
+    position: fixed;
+    top: 122px;
+    left: 300px;
+    right: 0;
+    bottom: 0;
+    width: auto !important;
+    height: auto;
+    margin: 0 !important;
+    padding: 16px 24px 22px;
+    overflow: hidden;
+  }
   /* Gestion des rapports : fenêtre fixe, seule la liste défile. */
   .rapport-gestion-fixe {
-    position: fixed;
-    top: 138px;
-    left: 324px;
-    right: 24px;
-    bottom: 22px;
-    width: auto;
+    position: relative;
+    inset: auto;
+    width: min(1120px, 100%);
+    height: 100%;
+    max-height: 100%;
     min-height: 0;
+    margin: 0 auto;
     padding: 20px;
     display: flex;
     flex-direction: column;
@@ -709,19 +725,29 @@ body.lien-ouvert .header {
     backdrop-filter: blur(6px);
   }
   @media (max-width: 900px) {
+    body.mode-rapport-gestion #contenuLienMDC {
+      position: fixed;
+      top: 112px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 12px;
+    }
     .rapport-gestion-fixe {
-      position: relative;
-      inset: auto;
       width: 100%;
-      height: calc(100vh - 210px);
-      min-height: 520px;
+      height: 100%;
+      min-height: 0;
       padding: 15px;
     }
   }
   @media (max-width: 520px) {
+    body.mode-rapport-gestion #contenuLienMDC {
+      top: 104px;
+      padding: 8px;
+    }
     .rapport-gestion-fixe {
-      height: calc(100vh - 175px);
-      min-height: 430px;
+      height: 100%;
+      min-height: 0;
       padding: 10px;
     }
   }
@@ -4191,6 +4217,8 @@ function construireInsigneGrade(grade) {
     // Les comptes ayant accès à la gestion des rapports (validerRapports et/ou
     // supprimerRapports) accèdent uniquement à la file de validation.
     if (aAccesGestionRapports(matriculeActif)) {
+      document.body.classList.add('mode-rapport-gestion');
+      zone.scrollTop = 0;
       zone.innerHTML = `
         <section class="rapport-mdc-wrap rapport-gestion-fixe">
           <header class="rapport-mdc-header">
@@ -4369,6 +4397,7 @@ function construireInsigneGrade(grade) {
     if (!zone) return;
 
     arreterAutoRefreshEffectif();
+    document.body.classList.remove('mode-rapport-gestion');
 
     // Si on quitte Administration pour une autre section du menu principal,
     // la barre fixe des 3 boutons Administration doit disparaître.
