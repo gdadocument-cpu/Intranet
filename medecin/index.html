@@ -647,9 +647,47 @@ body.lien-ouvert .header {
   .rapport-validation-btn:hover { background: rgba(49, 160, 113, .36); }
 
   /* Gestion des rapports : la liste reste consultable même avec beaucoup d'entrées. */
+  /* Gestion des rapports : fenêtre fixe, seule la liste défile. */
+  .rapport-gestion-fixe {
+    position: fixed;
+    top: 138px;
+    left: 324px;
+    right: 24px;
+    bottom: 22px;
+    width: auto;
+    min-height: 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 20;
+  }
+  .rapport-gestion-fixe > .rapport-mdc-header {
+    flex: 0 0 auto;
+  }
+  .rapport-gestion-fixe > .rapport-mdc-grid {
+    flex: 1 1 auto;
+    min-height: 0;
+    margin-top: 14px;
+  }
+  .rapport-gestion-fixe .rapport-mdc-card {
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .rapport-gestion-fixe .rapport-mdc-card-head {
+    flex: 0 0 auto;
+    position: relative;
+    z-index: 3;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, .2);
+  }
   #rapportValidation {
-    max-height: 64vh;
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
     overflow-y: auto;
+    overflow-x: hidden;
     overscroll-behavior: contain;
     scrollbar-color: #3e87ad #071522;
     scrollbar-width: thin;
@@ -670,8 +708,22 @@ body.lien-ouvert .header {
     background: #142716;
     backdrop-filter: blur(6px);
   }
-  @media (max-width: 850px) {
-    #rapportValidation { max-height: 58vh; }
+  @media (max-width: 900px) {
+    .rapport-gestion-fixe {
+      position: relative;
+      inset: auto;
+      width: 100%;
+      height: calc(100vh - 210px);
+      min-height: 520px;
+      padding: 15px;
+    }
+  }
+  @media (max-width: 520px) {
+    .rapport-gestion-fixe {
+      height: calc(100vh - 175px);
+      min-height: 430px;
+      padding: 10px;
+    }
   }
   @media (max-width: 850px) { .rapport-mdc-grid { grid-template-columns: 1fr; }.rapport-mdc-wrap { padding: 15px; }.rapport-mdc-header { align-items: flex-start; flex-direction: column; }.rapport-mdc-stats { width: 100%; }.rapport-stat { flex: 1; } }
   @media (max-width: 460px) { .rapport-fields { grid-template-columns: 1fr; }.rapport-mdc-header h2 { font-size: 21px; }.rapport-mdc-wrap { padding: 10px; } }
@@ -1818,6 +1870,71 @@ body.mode-boutons #contenuLienMDC{margin-top:90px;}
     .side-img { display: none; }
   }
 
+
+
+
+  /* === Alignement général des fenêtres ===
+     Sur ordinateur, les panneaux sont centrés dans la zone libre située à
+     droite du menu fixe. Ils ne peuvent donc plus passer sous les onglets. */
+  @media (min-width: 901px) {
+    :root {
+      --mdc-menu-left: 24px;
+      --mdc-menu-width: 260px;
+      --mdc-menu-gap: 28px;
+      --mdc-content-left: calc(var(--mdc-menu-left) + var(--mdc-menu-width) + var(--mdc-menu-gap));
+      --mdc-content-right: 24px;
+    }
+
+    body.mode-boutons #contenuLienMDC {
+      width: auto !important;
+      margin-left: var(--mdc-content-left) !important;
+      margin-right: var(--mdc-content-right) !important;
+      box-sizing: border-box;
+    }
+
+    /* Toutes les fenêtres générées occupent la zone utile et y sont centrées. */
+    body.mode-boutons #contenuLienMDC > :not(.rapport-gestion-fixe),
+    body.mode-admin #contenuLienMDC > :not(.rapport-gestion-fixe) {
+      width: min(100%, 1180px);
+      margin-left: auto;
+      margin-right: auto;
+      box-sizing: border-box;
+    }
+
+    body.mode-boutons #contenuLienMDC > .admin-wrap,
+    body.mode-boutons #contenuLienMDC > .effectif-wrap,
+    body.mode-boutons #contenuLienMDC > .reglement-wrap,
+    body.mode-boutons #contenuLienMDC > .materiel-wrap,
+    body.mode-boutons #contenuLienMDC > .rapport-mdc-wrap:not(.rapport-gestion-fixe),
+    body.mode-admin #contenuLienMDC > .admin-wrap,
+    body.mode-admin #contenuLienMDC > .effectif-wrap,
+    body.mode-admin #contenuLienMDC > .reglement-wrap,
+    body.mode-admin #contenuLienMDC > .materiel-wrap,
+    body.mode-admin #contenuLienMDC > .rapport-mdc-wrap:not(.rapport-gestion-fixe) {
+      max-width: 1180px;
+    }
+
+    /* La gestion des rapports reste une fenêtre fixe dans la même zone sûre. */
+    .rapport-gestion-fixe {
+      left: var(--mdc-content-left) !important;
+      right: var(--mdc-content-right) !important;
+      width: auto !important;
+      transform: none !important;
+      box-sizing: border-box;
+    }
+  }
+
+  /* Écrans intermédiaires : menu légèrement réduit pour conserver de la place. */
+  @media (min-width: 901px) and (max-width: 1250px) {
+    :root {
+      --mdc-menu-width: 230px;
+      --mdc-menu-gap: 20px;
+      --mdc-content-right: 16px;
+    }
+    body.mode-boutons .menu-boutons { max-width: var(--mdc-menu-width); }
+    body.mode-boutons .btn-lien-mdc { padding: 17px 16px; font-size: 12px; }
+    .rapport-gestion-fixe { padding: 16px; }
+  }
 
 </style>
 </head>
@@ -4075,7 +4192,7 @@ function construireInsigneGrade(grade) {
     // supprimerRapports) accèdent uniquement à la file de validation.
     if (aAccesGestionRapports(matriculeActif)) {
       zone.innerHTML = `
-        <section class="rapport-mdc-wrap">
+        <section class="rapport-mdc-wrap rapport-gestion-fixe">
           <header class="rapport-mdc-header">
             <div>
               <div class="rapport-mdc-kicker">Espace double verification</div>
