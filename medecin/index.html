@@ -645,6 +645,34 @@ body.lien-ouvert .header {
   .rapport-validation-actions { display: flex; gap: 8px; margin-top: 10px; }
   .rapport-validation-btn { border: 1px solid #67dcb0; border-radius: 6px; padding: 7px 9px; background: rgba(49, 160, 113, .2); color: #b6ffdc; font: 800 10px 'JetBrains Mono', monospace; letter-spacing: .04em; text-transform: uppercase; cursor: pointer; }
   .rapport-validation-btn:hover { background: rgba(49, 160, 113, .36); }
+
+  /* Gestion des rapports : la liste reste consultable même avec beaucoup d'entrées. */
+  #rapportValidation {
+    max-height: 64vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-color: #3e87ad #071522;
+    scrollbar-width: thin;
+  }
+  #rapportValidation::-webkit-scrollbar { width: 10px; }
+  #rapportValidation::-webkit-scrollbar-track { background: #071522; }
+  #rapportValidation::-webkit-scrollbar-thumb {
+    background: #2f6f94;
+    border: 2px solid #071522;
+    border-radius: 999px;
+  }
+  #rapportValidation::-webkit-scrollbar-thumb:hover { background: #4aa5d3; }
+  #rapportValidation .rapport-validation { margin-top: 0; border-top: 0; border-radius: 0 0 11px 11px; }
+  #rapportValidation .rapport-validation-head {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #142716;
+    backdrop-filter: blur(6px);
+  }
+  @media (max-width: 850px) {
+    #rapportValidation { max-height: 58vh; }
+  }
   @media (max-width: 850px) { .rapport-mdc-grid { grid-template-columns: 1fr; }.rapport-mdc-wrap { padding: 15px; }.rapport-mdc-header { align-items: flex-start; flex-direction: column; }.rapport-mdc-stats { width: 100%; }.rapport-stat { flex: 1; } }
   @media (max-width: 460px) { .rapport-fields { grid-template-columns: 1fr; }.rapport-mdc-header h2 { font-size: 21px; }.rapport-mdc-wrap { padding: 10px; } }
 
